@@ -7,7 +7,8 @@ Una API que proporciona un asistente virtual inteligente para consultas utilizan
 - Asistente virtual inteligente usando OpenAI
 - Manejo automático de conversaciones por usuario
 - Integración con Twilio para mensajería
-- Base de datos SQLite para persistencia
+- Base de datos SQLite para desarrollo local
+- Base de datos SQL Server para producción
 - Sistema de tools dinámico y extensible
 
 ## 📋 Requisitos Previos
@@ -16,6 +17,7 @@ Una API que proporciona un asistente virtual inteligente para consultas utilizan
 - npm o yarn
 - Una cuenta en OpenAI con API key
 - Una cuenta en Twilio (para la integración de mensajería)
+- SQL Server (solo para producción)
 
 ## 🛠️ Instalación
 
@@ -30,12 +32,24 @@ cd demoapi
 npm install
 ```
 
-3. Crea un archivo `.env` en la raíz del proyecto:
+3. Crea un archivo `.env` en la raíz del proyecto basado en `env.example`:
 ```env
+# OpenAI Configuration
 OPENAI_API_KEY=tu_api_key_de_openai
 OPENAI_ASSISTANT_ID=id_del_asistente
 OPENAI_MODEL=gpt-4-1106-preview
 OPENAI_ASSISTANT_NAME=nombre_del_asistente
+
+# Server Configuration
+PORT=3000
+HOST=0.0.0.0
+NODE_ENV=development
+
+# Database Configuration (solo necesario en producción)
+DB_USER=usuario_sql_server
+DB_PASSWORD=contraseña_sql_server
+DB_SERVER=host_sql_server
+DB_NAME=nombre_base_datos
 ```
 
 ## 🚀 Comandos Disponibles
@@ -43,7 +57,7 @@ OPENAI_ASSISTANT_NAME=nombre_del_asistente
 - `npm run start-api`: Inicia el servidor API
 - `npm run compile`: Compila el código TypeScript
 - `npm run configure-assistant`: Configura el asistente en OpenAI
-- `npm run setup-db`: Inicializa la base de datos SQLite
+- `npm run setup-db`: Inicializa la base de datos
 
 ## 📚 Estructura del Proyecto
 
@@ -59,24 +73,21 @@ src/
 └── tools/         # Tools dinámicas del asistente
 ```
 
-## 🔧 Configuración
+## 🔧 Configuración de Base de Datos
 
-### Base de Datos
-La aplicación utiliza SQLite para almacenar:
-- Hilos de conversación por usuario
-- Historial de mensajes
-- Estado de las interacciones
+### Desarrollo Local
+En desarrollo, la aplicación utiliza SQLite por defecto. La base de datos se crea automáticamente en el archivo `chat.db`.
 
-Para inicializar la base de datos:
-```bash
-npm run setup-db
-```
+### Producción
+En producción, la aplicación utiliza SQL Server. Asegúrate de configurar las siguientes variables de entorno:
+- `DB_USER`: Usuario de SQL Server
+- `DB_PASSWORD`: Contraseña de SQL Server
+- `DB_SERVER`: Host del servidor SQL Server
+- `DB_NAME`: Nombre de la base de datos
 
-### Asistente OpenAI
-Para configurar el asistente con las tools necesarias:
-```bash
-npm run configure-assistant
-```
+Para cambiar entre entornos, usa la variable `NODE_ENV`:
+- `development`: Usa SQLite (por defecto)
+- `production`: Usa SQL Server
 
 ## 🛡️ Seguridad
 
