@@ -1,13 +1,29 @@
 import * as sql from 'mssql';
 import { IDatabase } from './IDatabase';
 
+/**
+ * Implementación de la base de datos usando SQL Server.
+ * Esta implementación está diseñada para entornos de producción,
+ * proporcionando todas las características empresariales de SQL Server
+ * como alta disponibilidad, backups automáticos y mejor escalabilidad.
+ */
 export class SQLServerDatabase implements IDatabase {
     private pool: sql.ConnectionPool;
 
+    /**
+     * Constructor que inicializa el pool de conexiones de SQL Server.
+     * @param config - Configuración de conexión a SQL Server incluyendo credenciales y opciones
+     */
     constructor(config: sql.config) {
         this.pool = new sql.ConnectionPool(config);
     }
 
+    /**
+     * Inicializa la estructura de la base de datos.
+     * Crea las tablas e índices necesarios si no existen, utilizando características
+     * específicas de SQL Server como NVARCHAR para soporte Unicode y DATETIME2 para
+     * precisión temporal.
+     */
     async initialize(): Promise<void> {
         await this.pool.connect();
         
@@ -16,6 +32,7 @@ export class SQLServerDatabase implements IDatabase {
         try {
             await transaction.begin();
 
+            // Tabla para almacenar la relación entre usuarios y sus hilos de conversación
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_threads')
                 CREATE TABLE user_threads (
@@ -26,6 +43,7 @@ export class SQLServerDatabase implements IDatabase {
                 )
             `);
 
+            // Tabla para almacenar el historial de mensajes
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'chat_history')
                 CREATE TABLE chat_history (
@@ -34,11 +52,12 @@ export class SQLServerDatabase implements IDatabase {
                     thread_id NVARCHAR(100),
                     message NVARCHAR(MAX),
                     role NVARCHAR(50),
-                    timestamp DATETIME2 DEFAULT GETDATE()
+                    timestamp DATETIME2 DEFAULT GETDATE(),
+                    FOREIGN KEY (phone_number) REFERENCES user_threads(phone_number)
                 )
             `);
 
-            // Create indexes for faster queries
+            // Índices para optimizar las consultas frecuentes
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_chat_history_phone_number')
                 CREATE INDEX idx_chat_history_phone_number ON chat_history(phone_number)
@@ -56,6 +75,10 @@ export class SQLServerDatabase implements IDatabase {
         }
     }
 
+    /**
+     * @inheritdoc
+     * Utiliza parámetros SQL para prevenir inyección SQL.
+     */
     async getThreadId(phoneNumber: string): Promise<string | null> {
         const result = await this.pool.request()
             .input('phoneNumber', sql.NVarChar, phoneNumber)
@@ -64,6 +87,11 @@ export class SQLServerDatabase implements IDatabase {
         return result.recordset[0]?.thread_id || null;
     }
 
+    /**
+     * @inheritdoc
+     * Utiliza la sentencia MERGE de SQL Server para manejar la inserción/actualización
+     * en una única operación atómica.
+     */
     async saveThreadId(phoneNumber: string, threadId: string): Promise<void> {
         await this.pool.request()
             .input('phoneNumber', sql.NVarChar, phoneNumber)
@@ -80,11 +108,17 @@ export class SQLServerDatabase implements IDatabase {
             `);
     }
 
+    /**
+     * @inheritdoc
+     * Implementa una transacción explícita para garantizar la consistencia
+     * al guardar el mensaje y actualizar la última interacción.
+     */
     async saveMessage(phoneNumber: string, threadId: string, message: string, role: 'user' | 'assistant'): Promise<void> {
         const transaction = new sql.Transaction(this.pool);
         try {
             await transaction.begin();
 
+            // Inserta el nuevo mensaje
             await transaction.request()
                 .input('phoneNumber', sql.NVarChar, phoneNumber)
                 .input('threadId', sql.NVarChar, threadId)
@@ -95,6 +129,7 @@ export class SQLServerDatabase implements IDatabase {
                     VALUES (@phoneNumber, @threadId, @message, @role)
                 `);
 
+            // Actualiza la marca de tiempo de última interacción
             await transaction.request()
                 .input('phoneNumber', sql.NVarChar, phoneNumber)
                 .query(`
@@ -110,6 +145,11 @@ export class SQLServerDatabase implements IDatabase {
         }
     }
 
+    /**
+     * @inheritdoc
+     * Utiliza la sintaxis moderna de SQL Server para paginación (OFFSET-FETCH)
+     * que es más eficiente que TOP o ROW_NUMBER().
+     */
     async getRecentMessages(phoneNumber: string, limit: number = 10): Promise<Array<{message: string, role: string, timestamp: string}>> {
         const result = await this.pool.request()
             .input('phoneNumber', sql.NVarChar, phoneNumber)
@@ -126,6 +166,10 @@ export class SQLServerDatabase implements IDatabase {
         return result.recordset;
     }
 
+    /**
+     * @inheritdoc
+     * Cierra el pool de conexiones de SQL Server de manera segura.
+     */
     async close(): Promise<void> {
         await this.pool.close();
     }
