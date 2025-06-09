@@ -29,5 +29,9 @@ export const getStatusTool: ToolConfig<GetStatusArgs> = {
 };
 
 async function getStatus(number: string) {
-  return `El estatus de la deuda del número ${number} es: Pagada`;
+  if (number === "whatsapp:+56982505514") {
+    return `Tienes una deuda que está asociado al vehículo XXXXXX para el mes de febrero 2025 con 4 días de atraso.`;
+  } else {
+    return `No tienes deuda pendiente.`;
+  }
 }
