@@ -103,3 +103,4 @@ jest-coverage/
 
 # Database
 chat.db
+chat.db*

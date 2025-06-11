@@ -57,6 +57,19 @@ export class SQLServerDatabase implements IDatabase {
                 )
             `);
 
+            // Tabla para almacenar la deuda de los usuarios
+            await transaction.request().query(`
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_debt')
+                CREATE TABLE IF NOT EXISTS user_debt (
+                    phone_number NVARCHAR(50) PRIMARY KEY,
+                    name NVARCHAR(250),
+                    debt_amount DECIMAL(10,2) NOT NULL,
+                    due_date DATE NOT NULL,
+                    created_at DATETIME2 DEFAULT GETDATE()
+                )
+            `);
+
+
             // Índices para optimizar las consultas frecuentes
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_chat_history_phone_number')
@@ -66,6 +79,12 @@ export class SQLServerDatabase implements IDatabase {
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_chat_history_timestamp')
                 CREATE INDEX idx_chat_history_timestamp ON chat_history(timestamp)
+            `);
+
+            // Índice para optimizar búsquedas por fecha de vencimiento
+            await transaction.request().query(`
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_user_debt_due_date')
+                CREATE INDEX idx_user_debt_due_date ON user_debt(due_date)
             `);
 
             await transaction.commit();
@@ -164,6 +183,94 @@ export class SQLServerDatabase implements IDatabase {
             `);
 
         return result.recordset;
+    }
+
+    /**
+     * @inheritdoc
+     * Utiliza la sentencia MERGE de SQL Server para manejar la inserción/actualización
+     * de la información de deuda en una única operación atómica.
+     */
+    async saveUserDebt(phoneNumber: string, name: string | null, debtAmount: number, dueDate: Date): Promise<void> {
+        await this.pool.request()
+            .input('phoneNumber', sql.NVarChar, phoneNumber)
+            .input('name', sql.NVarChar, name)
+            .input('debtAmount', sql.Decimal(10, 2), debtAmount)
+            .input('dueDate', sql.Date, dueDate)
+            .query(`
+                MERGE user_debt AS target
+                USING (SELECT @phoneNumber as phone_number, @name as name, @debtAmount as debt_amount, @dueDate as due_date) AS source
+                ON target.phone_number = source.phone_number
+                WHEN MATCHED THEN
+                    UPDATE SET 
+                        name = source.name,
+                        debt_amount = source.debt_amount,
+                        due_date = source.due_date
+                WHEN NOT MATCHED THEN
+                    INSERT (phone_number, name, debt_amount, due_date)
+                    VALUES (source.phone_number, source.name, source.debt_amount, source.due_date);
+            `);
+    }
+
+    /**
+     * @inheritdoc
+     * Utiliza parámetros SQL para prevenir inyección SQL y retorna la información
+     * de deuda de un usuario específico.
+     */
+    async getUserDebt(phoneNumber: string): Promise<{
+        phoneNumber: string;
+        name: string | null;
+        debtAmount: number;
+        dueDate: Date;
+        createdAt: Date;
+    } | null> {
+        const result = await this.pool.request()
+            .input('phoneNumber', sql.NVarChar, phoneNumber)
+            .query(`
+                SELECT phone_number, name, debt_amount, due_date, created_at
+                FROM user_debt
+                WHERE phone_number = @phoneNumber
+            `);
+
+        if (result.recordset.length === 0) return null;
+
+        const row = result.recordset[0];
+        return {
+            phoneNumber: row.phone_number,
+            name: row.name,
+            debtAmount: row.debt_amount,
+            dueDate: new Date(row.due_date),
+            createdAt: new Date(row.created_at)
+        };
+    }
+
+    /**
+     * @inheritdoc
+     * Utiliza parámetros SQL para prevenir inyección SQL y retorna todas las deudas
+     * vencidas hasta una fecha específica, ordenadas por fecha de vencimiento.
+     */
+    async getOverdueDebts(date: Date): Promise<Array<{
+        phoneNumber: string;
+        name: string | null;
+        debtAmount: number;
+        dueDate: Date;
+        createdAt: Date;
+    }>> {
+        const result = await this.pool.request()
+            .input('date', sql.Date, date)
+            .query(`
+                SELECT phone_number, name, debt_amount, due_date, created_at
+                FROM user_debt
+                WHERE due_date <= @date
+                ORDER BY due_date ASC
+            `);
+
+        return result.recordset.map(row => ({
+            phoneNumber: row.phone_number,
+            name: row.name,
+            debtAmount: row.debt_amount,
+            dueDate: new Date(row.due_date),
+            createdAt: new Date(row.created_at)
+        }));
     }
 
     /**

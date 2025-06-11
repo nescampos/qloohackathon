@@ -71,6 +71,20 @@ export class SQLiteDatabase implements IDatabase {
             await this.run('CREATE INDEX IF NOT EXISTS idx_chat_history_phone_number ON chat_history(phone_number)');
             await this.run('CREATE INDEX IF NOT EXISTS idx_chat_history_timestamp ON chat_history(timestamp)');
             
+            // Tabla para almacenar la deuda de los usuarios
+            await this.run(`
+                CREATE TABLE IF NOT EXISTS user_debt (
+                    phone_number TEXT PRIMARY KEY,
+                    name TEXT,
+                    debt_amount DECIMAL(10,2) NOT NULL,
+                    due_date DATE NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Índice para optimizar búsquedas por fecha de vencimiento
+            await this.run('CREATE INDEX IF NOT EXISTS idx_user_debt_due_date ON user_debt(due_date)');
+            
             await this.run('COMMIT');
 
             // Prepara las consultas más utilizadas
@@ -154,6 +168,72 @@ export class SQLiteDatabase implements IDatabase {
              LIMIT ?`,
             [phoneNumber, limit]
         );
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async saveUserDebt(phoneNumber: string, name: string | null, debtAmount: number, dueDate: Date): Promise<void> {
+        await this.run(
+            `INSERT OR REPLACE INTO user_debt (phone_number, name, debt_amount, due_date)
+             VALUES (?, ?, ?, ?)`,
+            [phoneNumber, name, debtAmount, dueDate.toISOString().split('T')[0]]
+        );
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async getUserDebt(phoneNumber: string): Promise<{
+        phoneNumber: string;
+        name: string | null;
+        debtAmount: number;
+        dueDate: Date;
+        createdAt: Date;
+    } | null> {
+        const result = await this.get(
+            `SELECT phone_number, name, debt_amount, due_date, created_at
+             FROM user_debt
+             WHERE phone_number = ?`,
+            [phoneNumber]
+        );
+
+        if (!result) return null;
+
+        return {
+            phoneNumber: result.phone_number,
+            name: result.name,
+            debtAmount: result.debt_amount,
+            dueDate: new Date(result.due_date),
+            createdAt: new Date(result.created_at)
+        };
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async getOverdueDebts(date: Date): Promise<Array<{
+        phoneNumber: string;
+        name: string | null;
+        debtAmount: number;
+        dueDate: Date;
+        createdAt: Date;
+    }>> {
+        const results = await this.all(
+            `SELECT phone_number, name, debt_amount, due_date, created_at
+             FROM user_debt
+             WHERE due_date <= ?
+             ORDER BY due_date ASC`,
+            [date.toISOString().split('T')[0]]
+        );
+
+        return results.map(row => ({
+            phoneNumber: row.phone_number,
+            name: row.name,
+            debtAmount: row.debt_amount,
+            dueDate: new Date(row.due_date),
+            createdAt: new Date(row.created_at)
+        }));
     }
 
     /**

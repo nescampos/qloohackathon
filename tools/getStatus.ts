@@ -1,5 +1,6 @@
 import type { ToolConfig } from "./allTools";
 import type { GetStatusArgs } from "./toolInterfaces";
+import { DatabaseFactory } from "../src/database/DatabaseFactory";
 
 /**
  * Get the status of a user's debt.
@@ -29,9 +30,28 @@ export const getStatusTool: ToolConfig<GetStatusArgs> = {
 };
 
 async function getStatus(number: string) {
-  if (number === "whatsapp:+56982505514") {
-    return `Tienes una deuda que está asociado al vehículo XXXXXX para el mes de febrero 2025 con 4 días de atraso.`;
-  } else {
-    return `No tienes deuda pendiente.`;
+  const db = DatabaseFactory.createDatabase();
+  
+  try {
+    const userDebt = await db.getUserDebt(number);
+    
+    if (!userDebt) {
+      return "No tienes deuda pendiente.";
+    }
+
+    const today = new Date();
+    const dueDate = new Date(userDebt.dueDate);
+    const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysOverdue > 0) {
+      return `Tienes una deuda de $${userDebt.debtAmount.toFixed(2)} que vence el ${dueDate.toLocaleDateString()} con ${daysOverdue} días de atraso.`;
+    } else {
+      return `Tienes una deuda de $${userDebt.debtAmount.toFixed(2)} que vence el ${dueDate.toLocaleDateString()}.`;
+    }
+  } catch (error) {
+    //console.error('Error al consultar la deuda:', error);
+    return "Lo siento, hubo un error al consultar tu deuda. Por favor, intenta más tarde.";
+  } finally {
+    await db.close();
   }
 }
