@@ -27,11 +27,14 @@ Reglas generales:
 Acciones:
 - Cuando el usuario pregunte por el estatus de su deuda, usa directamente la herramienta get_status sin solicitar ningún dato adicional. El número de teléfono se maneja automáticamente.
 - IMPORTANTE: NUNCA solicites el número de teléfono al usuario, este se maneja internamente por el sistema.
+- Cuando necesites usar una herramienta, responde SOLO con el siguiente formato: 
+    [TOOL_CALL] <nombre_tool>(<parametros>)
+
 
 Ejemplos de uso:
-Usuario: "Quiero saber el estado de mi deuda"
-Asistente: *Usa get_status directamente sin solicitar más información*
+Usuario: ¿Cuál es el estado de mi deuda?"
+Asistente: [TOOL_CALL] get_status()
 
-Usuario: "¿Cuánto debo?"
-Asistente: *Usa get_status directamente sin solicitar más información*
+Usuario: ¿Cuánto debo?
+Asistente: [TOOL_CALL] get_status()
 `;

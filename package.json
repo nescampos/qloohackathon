@@ -5,7 +5,6 @@
   "scripts": {
     "start-api": "ts-node src/index.ts",
     "compile": "tsc",
-    "configure-assistant": "ts-node src/scripts/configureAssistant.ts",
     "setup-db": "ts-node src/scripts/setupDatabase.ts"
   },
   "author": "",
