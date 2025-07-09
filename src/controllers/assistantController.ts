@@ -33,25 +33,33 @@ export class AssistantController {
             });
             let content = response.choices[0].message?.content ?? '';
 
+            console.log('Primera respuesta del modelo:', content);
+
             // 2. Detectar tool-call (formato: [TOOL_CALL] tool_name({ ... }))
             const toolCallMatch = content.match(/^\[TOOL_CALL\]\s*(\w+)\((.*)\)$/);
             if (toolCallMatch) {
                 const [, toolName, paramsRaw] = toolCallMatch;
+                //console.log('Tool detectada:', toolName);
+                
                 const tool = tools[toolName];
                 if (!tool) throw new Error(`Tool ${toolName} not found`);
+                
                 // El número se maneja automáticamente
                 const params = { number: From };
                 const toolResult = await tool.handler(params);
+                //console.log('Resultado de la tool:', toolResult);
 
                 // 3. Añadir resultado de tool y volver a llamar al modelo
                 messages.push({ role: 'assistant', content });
                 messages.push({ role: 'function', name: toolName, content: toolResult });
 
+                //console.log('Enviando resultado de tool al modelo...');
                 response = await openai.chat.completions.create({
                     model,
                     messages
                 });
                 content = response.choices[0].message?.content ?? '';
+                //console.log('Respuesta final del modelo:', content);
             }
 
             // Guardar mensajes
