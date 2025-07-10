@@ -65,6 +65,7 @@ SUPABASE_KEY=your-supabase-service-role-key
 - `npm run setup-db`: Configura la base de datos
 - `npm run start-api`: Inicia el servidor API
 - `npm run compile`: Compila el código TypeScript
+- `npm start`: Inicia en modo producción (después de la compilación)
 
 ## 📚 Estructura del Proyecto
 
@@ -247,6 +248,7 @@ SUPABASE_KEY=your-supabase-service-role-key
 - `npm run setup-db`: Setup the database
 - `npm run start-api`: Start the API server
 - `npm run compile`: Compile TypeScript code
+- `npm start`: Start in a production mode (after compilation)
 
 ## 📚 Project Structure
 
