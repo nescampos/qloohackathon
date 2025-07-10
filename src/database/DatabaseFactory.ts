@@ -1,7 +1,8 @@
-import { IDatabase } from './IDatabase';
 import { SQLiteDatabase } from './SQLiteDatabase';
 import { SQLServerDatabase } from './SQLServerDatabase';
+import { SupabaseDatabase } from './SupabaseDatabase';
 import * as sql from 'mssql';
+import { IDatabase } from './IDatabase';
 
 /**
  * Factory para crear instancias de base de datos.
@@ -27,31 +28,22 @@ export class DatabaseFactory {
      * 
      * @returns Una instancia que implementa la interfaz IDatabase
      */
-    static createDatabase(): IDatabase {
-        const environment = process.env.NODE_ENV || 'development';
-
-        if (environment === 'production') {
-            // SQL Server configuration for production
-            const config: sql.config = {
-                user: process.env.DB_USER,
-                password: process.env.DB_PASSWORD,
-                server: process.env.DB_SERVER || '',
-                database: process.env.DB_NAME,
-                options: {
-                    encrypt: true, // Para conexiones seguras
-                    trustServerCertificate: true, // Necesario en algunos entornos
-                },
-                pool: {
-                    max: 10, // Máximo de conexiones simultáneas
-                    min: 0,  // Mínimo de conexiones mantenidas
-                    idleTimeoutMillis: 30000 // Tiempo máximo de inactividad
-                }
-            };
-
-            return new SQLServerDatabase(config);
-        } else {
-            // SQLite for development
-            return new SQLiteDatabase();
+    static createDatabase(type: string, config: any): IDatabase {
+        switch (type) {
+            case 'sqlite':
+                return new SQLiteDatabase();
+            case 'sqlserver':
+                const sqlConfig: sql.config = {
+                    user: config.user,
+                    password: config.password,
+                    server: config.server,
+                    database: config.database,
+                };
+                return new SQLServerDatabase(sqlConfig);
+            case 'supabase':
+                return new SupabaseDatabase(config.url, config.key);
+            default:
+                throw new Error(`Unsupported database type: ${type}`);
         }
     }
 } 

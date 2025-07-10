@@ -75,18 +75,56 @@ src/
 ## 🔧 Configuración de Base de Datos
 
 ### Desarrollo Local
-En desarrollo, la aplicación utiliza SQLite por defecto. La base de datos se crea automáticamente en el archivo `chat.db`.
+Por defecto, la aplicación usa SQLite en desarrollo. La base de datos se crea automáticamente como `chat.db`.
 
 ### Producción
-En producción, la aplicación utiliza SQL Server. Asegúrate de configurar las siguientes variables de entorno:
-- `DB_USER`: Usuario de SQL Server
-- `DB_PASSWORD`: Contraseña de SQL Server
-- `DB_SERVER`: Host del servidor SQL Server
-- `DB_NAME`: Nombre de la base de datos
+En producción, puedes usar **SQL Server** o **Supabase**. Configura las siguientes variables de entorno según el motor:
 
-Para cambiar entre entornos, usa la variable `NODE_ENV`:
+#### SQL Server
+- DB_TYPE=sqlserver
+- DB_USER=usuario_sql_server
+- DB_PASSWORD=contraseña_sql_server
+- DB_SERVER=host_sql_server
+- DB_NAME=nombre_base_datos
+
+#### Supabase
+- DB_TYPE=supabase
+- SUPABASE_URL=https://your-project.supabase.co
+- SUPABASE_KEY=your-supabase-service-role-key
+
+##### Estructura de tablas para Supabase (Postgres):
+```sql
+-- Tabla de hilos de usuario
+CREATE TABLE user_threads (
+  phone_number VARCHAR PRIMARY KEY,
+  thread_id VARCHAR NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_interaction TIMESTAMP DEFAULT NOW()
+);
+
+-- Historial de mensajes
+CREATE TABLE chat_history (
+  id SERIAL PRIMARY KEY,
+  phone_number VARCHAR REFERENCES user_threads(phone_number),
+  thread_id VARCHAR,
+  message TEXT,
+  role VARCHAR,
+  timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabla de deudas de usuario
+CREATE TABLE user_debt (
+  phone_number VARCHAR PRIMARY KEY,
+  name VARCHAR,
+  debt_amount NUMERIC(10,2) NOT NULL,
+  due_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+Cambia de entorno usando la variable `NODE_ENV`:
 - `development`: Usa SQLite (por defecto)
-- `production`: Usa SQL Server
+- `production`: Usa SQL Server o Supabase
 
 ## 🛡️ Seguridad
 
@@ -215,15 +253,53 @@ src/
 By default, the app uses SQLite in development. The database is automatically created as `chat.db`.
 
 ### Production
-In production, the app uses SQL Server. Make sure to set the following environment variables:
-- `DB_USER`: SQL Server user
-- `DB_PASSWORD`: SQL Server password
-- `DB_SERVER`: SQL Server host
-- `DB_NAME`: Database name
+In production, you can use **SQL Server** or **Supabase**. Set the following environment variables according to your engine:
+
+#### SQL Server
+- DB_TYPE=sqlserver
+- DB_USER=sql_server_user
+- DB_PASSWORD=sql_server_password
+- DB_SERVER=sql_server_host
+- DB_NAME=database_name
+
+#### Supabase
+- DB_TYPE=supabase
+- SUPABASE_URL=https://your-project.supabase.co
+- SUPABASE_KEY=your-supabase-service-role-key
+
+##### Table structure for Supabase (Postgres):
+```sql
+-- User threads table
+CREATE TABLE user_threads (
+  phone_number VARCHAR PRIMARY KEY,
+  thread_id VARCHAR NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_interaction TIMESTAMP DEFAULT NOW()
+);
+
+-- Message history
+CREATE TABLE chat_history (
+  id SERIAL PRIMARY KEY,
+  phone_number VARCHAR REFERENCES user_threads(phone_number),
+  thread_id VARCHAR,
+  message TEXT,
+  role VARCHAR,
+  timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- User debt table
+CREATE TABLE user_debt (
+  phone_number VARCHAR PRIMARY KEY,
+  name VARCHAR,
+  debt_amount NUMERIC(10,2) NOT NULL,
+  due_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
 
 Switch environments using the `NODE_ENV` variable:
 - `development`: Uses SQLite (default)
-- `production`: Uses SQL Server
+- `production`: Uses SQL Server or Supabase
 
 ## 🛡️ Security
 

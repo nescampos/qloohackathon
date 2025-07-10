@@ -1,6 +1,6 @@
 import type { ToolConfig } from "./allTools";
 import type { GetStatusArgs } from "./toolInterfaces";
-import { DatabaseFactory } from "../src/database/DatabaseFactory";
+import { db } from "../src/database/db";
 
 /**
  * Get the status of a user's debt.
@@ -30,7 +30,7 @@ export const getStatusTool: ToolConfig<GetStatusArgs> = {
 };
 
 async function getStatus(number: string) {
-  const db = DatabaseFactory.createDatabase();
+  
   
   try {
     const userDebt = await db.getUserDebt(number);

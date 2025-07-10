@@ -1,22 +1,14 @@
 import { DatabaseFactory } from './DatabaseFactory';
+import 'dotenv/config';
 
-/**
- * Punto de entrada único para la base de datos.
- * Este archivo exporta una única instancia de la base de datos (singleton)
- * que será utilizada en toda la aplicación.
- * 
- * La implementación concreta (SQLite o SQL Server) es determinada por
- * el DatabaseFactory basándose en el entorno de ejecución (NODE_ENV).
- * 
- * Uso:
- * ```typescript
- * import { db } from './database/db';
- * 
- * // Inicializar la base de datos
- * await db.initialize();
- * 
- * // Usar los métodos de la base de datos
- * await db.saveMessage(...);
- * ```
- */
-export const db = DatabaseFactory.createDatabase(); 
+const dbType = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'sqlserver' : 'sqlite');
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  url: process.env.SUPABASE_URL,
+  key: process.env.SUPABASE_KEY,
+};
+
+export const db = DatabaseFactory.createDatabase(dbType, dbConfig); 
