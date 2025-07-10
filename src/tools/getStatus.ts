@@ -1,6 +1,6 @@
 import type { ToolConfig } from "./allTools";
 import type { GetStatusArgs } from "./toolInterfaces";
-import { db } from "../src/database/db";
+import { db } from "../database/db";
 
 /**
  * Get the status of a user's debt.

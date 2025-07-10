@@ -44,13 +44,20 @@ OPENAI_MODEL=gpt-3.5-turbo
 # Server Configuration
 PORT=3000
 HOST=0.0.0.0
-NODE_ENV=development
+NODE_ENV=development | production
+
+# Database Configuration (para producción)
+DB_TYPE=supabase | sqlserver
 
 # Database Configuration (solo necesario en producción)
 DB_USER=usuario_sql_server
 DB_PASSWORD=contraseña_sql_server
 DB_SERVER=host_sql_server
 DB_NAME=nombre_base_datos
+
+# Supabase Configuration (solo necesario en producción, éste o SQL Server)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-supabase-service-role-key
 ```
 
 ## 🚀 Comandos Disponibles
@@ -219,13 +226,20 @@ OPENAI_MODEL=gpt-3.5-turbo
 # Server Configuration
 PORT=3000
 HOST=0.0.0.0
-NODE_ENV=development
+NODE_ENV=development | production
+
+# Database Configuration (production only)
+DB_TYPE=supabase | sqlserver
 
 # Database Configuration (production only)
 DB_USER=sql_server_user
 DB_PASSWORD=sql_server_password
 DB_SERVER=sql_server_host
 DB_NAME=database_name
+
+# Supabase Configuration (production only, this one or SQL Server)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-supabase-service-role-key
 ```
 
 ## 🚀 Available Commands

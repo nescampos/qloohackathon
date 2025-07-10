@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../database/db';
 import { ResponseHandler } from '../utils/responseHandler';
-import { tools } from '../../tools/allTools';
+import { tools } from '../tools/allTools';
 import { assistantPrompt } from '../constants/prompt';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
