@@ -1,14 +1,15 @@
-# WhatsApp Assistant API
+# WhatsApp AI Assistant API
 
-Una API que proporciona un asistente virtual inteligente para consultas utilizando la API de OpenAI o cualquier servicio compatible con el SDK de OpenAI (configurable por baseURL).
+Una API que proporciona un asistente virtual inteligente para consultas utilizando la API de OpenAI o cualquier servicio compatible con el SDK de OpenAI (configurable por baseURL), ahora con soporte multi-canal (Twilio y WhatsApp Business API nativa) y estructura extensible para más canales.
 
 ## 🚀 Características
 
 - Asistente virtual inteligente usando OpenAI o servicios compatibles
 - Manejo automático de conversaciones por usuario
-- Integración con Twilio para mensajería
+- Integración multi-canal: Twilio (WhatsApp/SMS) y WhatsApp Business API nativa (WABA)
+- Webhook único y extensible para más canales
 - Base de datos SQLite para desarrollo local
-- Base de datos SQL Server para producción
+- Base de datos SQL Server o Supabase para producción
 - Sistema de tools dinámico y extensible (ejecutadas en backend)
 - Configuración flexible de modelo y endpoint (baseURL)
 
@@ -18,7 +19,8 @@ Una API que proporciona un asistente virtual inteligente para consultas utilizan
 - npm o yarn
 - Una cuenta en OpenAI o servicio compatible con su API
 - Una cuenta en Twilio (para la integración de mensajería)
-- SQL Server (solo para producción)
+- Una cuenta de WhatsApp Business API (opcional, Meta)
+- SQL Server o Supabase (solo para producción)
 
 ## 🛠️ Instalación
 
@@ -44,26 +46,33 @@ OPENAI_MODEL=gpt-3.5-turbo
 # Server Configuration
 PORT=3000
 HOST=0.0.0.0
-NODE_ENV=development | production
-
-# Database Configuration (para producción)
-DB_TYPE=supabase | sqlserver
+NODE_ENV=development
 
 # Database Configuration (solo necesario en producción)
-DB_USER=usuario_sql_server
-DB_PASSWORD=contraseña_sql_server
-DB_SERVER=host_sql_server
-DB_NAME=nombre_base_datos
-
-# Supabase Configuration (solo necesario en producción, éste o SQL Server)
+DB_TYPE=supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-supabase-service-role-key
+# O para SQL Server:
+# DB_TYPE=sqlserver
+# DB_USER=usuario_sql_server
+# DB_PASSWORD=contraseña_sql_server
+# DB_SERVER=host_sql_server
+# DB_NAME=nombre_base_datos
+
+# Twilio (opcional)
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_NUMBER=...
+
+# WhatsApp Business API (WABA)
+WABA_PHONE_NUMBER_ID=...
+WABA_ACCESS_TOKEN=...
 ```
 
 ## 🚀 Comandos Disponibles
 
 - `npm run setup-db`: Configura la base de datos
-- `npm run start-api`: Inicia el servidor API
+- `npm run start-api`: Inicia el servidor API (en modo developer)
 - `npm run compile`: Compila el código TypeScript
 - `npm start`: Inicia en modo producción (después de la compilación)
 
@@ -71,14 +80,24 @@ SUPABASE_KEY=your-supabase-service-role-key
 
 ```
 src/
-├── constants/     # Constantes y configuraciones
-├── controllers/   # Controladores de la API
-├── database/      # Configuración y modelos de la base de datos
-├── schemas/       # Esquemas de validación
-├── utils/         # Utilidades
-├── config/        # Configuración del servidor
-└── tools/         # Tools dinámicas del asistente
+├── channels/       # Parsers y envío para cada canal (twilio, waba, etc.)
+├── constants/      # Constantes y configuraciones
+├── controllers/    # Controladores de la API (webhook principal)
+├── database/       # Configuración y modelos de la base de datos
+├── schemas/        # Esquemas de validación
+├── services/       # Lógica común de procesamiento de mensajes
+├── utils/          # Utilidades
+├── config/         # Configuración del servidor
+└── tools/          # Tools dinámicas del asistente
 ```
+
+## 🌐 Soporte Multi-Canal y Webhook Único
+
+- El endpoint `/assistant` acepta mensajes de Twilio y WhatsApp Business API nativa (y es extensible a más canales).
+- El sistema detecta automáticamente el canal de origen, normaliza el mensaje y responde usando el formato adecuado:
+  - **Twilio:** Responde con XML (TwiML) usando `ResponseHandler`.
+  - **WABA:** Envía la respuesta usando la API de Meta.
+- Para agregar más canales, solo crea un archivo en `channels/` y actualiza el dispatcher.
 
 ## 🔧 Configuración de Base de Datos
 
@@ -134,32 +153,35 @@ Cambia de entorno usando la variable `NODE_ENV`:
 - `development`: Usa SQLite (por defecto)
 - `production`: Usa SQL Server o Supabase
 
-## 🛡️ Seguridad
-
-- Las credenciales sensibles se manejan a través de variables de entorno
-- Los números de teléfono se procesan internamente
-- Las transacciones de base de datos son atómicas
-- Se implementan prácticas de seguridad para la API
-
-## 📝 Uso de la API
+## 📝 Uso de la API y Webhook
 
 ### Endpoint Principal
 ```http
 POST /assistant
-Content-Type: application/x-www-form-urlencoded
+Content-Type: application/json o application/x-www-form-urlencoded
 
+// Twilio:
 Body=mensaje_del_usuario&From=numero_telefono
+
+// WhatsApp Business API:
+{
+  "messages": [
+    { "from": "numero_telefono", "text": { "body": "mensaje_del_usuario" }, ... }
+  ]
+}
 ```
 
 ### Ejemplo de Respuesta
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Message>Respuesta del asistente</Message>
-</Response>
-```
+- **Twilio:** XML (TwiML)
+- **WABA:** Mensaje enviado vía API de Meta
+- **Otros canales:** Adaptable
 
 ## 🔄 Extensibilidad
+
+### Agregar Nuevos Canales
+1. Crea un nuevo archivo en la carpeta `channels/` (ej: `telegram.ts`)
+2. Implementa el parser y el sender para ese canal
+3. Regístralo en el dispatcher de canales
 
 ### Agregar Nuevas Tools
 1. Crea un nuevo archivo en la carpeta `tools/`
@@ -181,17 +203,18 @@ MIT
 
 ---
 
-# WhatsApp Assistant API (English)
+# WhatsApp AI Assistant API (English)
 
-An API that provides a smart virtual assistant for queries using the OpenAI API or any service compatible with the OpenAI SDK (configurable via baseURL).
+An API that provides a smart virtual assistant for queries using the OpenAI API or any service compatible with the OpenAI SDK (configurable via baseURL), now with multi-channel support (Twilio and native WhatsApp Business API) and an extensible structure for more channels.
 
 ## 🚀 Features
 
 - Smart virtual assistant using OpenAI or compatible services
 - Automatic per-user conversation management
-- Twilio integration for messaging
+- Multi-channel integration: Twilio (WhatsApp/SMS) and native WhatsApp Business API (WABA)
+- Single, extensible webhook for all channels
 - SQLite database for local development
-- SQL Server database for production
+- SQL Server or Supabase database for production
 - Dynamic and extensible tools system (executed in backend)
 - Flexible model and endpoint (baseURL) configuration
 
@@ -201,7 +224,8 @@ An API that provides a smart virtual assistant for queries using the OpenAI API 
 - npm or yarn
 - An OpenAI account or compatible API service
 - A Twilio account (for messaging integration)
-- SQL Server (production only)
+- A WhatsApp Business API (Meta) account (optional)
+- SQL Server or Supabase (production only)
 
 ## 🛠️ Installation
 
@@ -227,26 +251,33 @@ OPENAI_MODEL=gpt-3.5-turbo
 # Server Configuration
 PORT=3000
 HOST=0.0.0.0
-NODE_ENV=development | production
+NODE_ENV=development
 
 # Database Configuration (production only)
-DB_TYPE=supabase | sqlserver
-
-# Database Configuration (production only)
-DB_USER=sql_server_user
-DB_PASSWORD=sql_server_password
-DB_SERVER=sql_server_host
-DB_NAME=database_name
-
-# Supabase Configuration (production only, this one or SQL Server)
+DB_TYPE=supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-supabase-service-role-key
+# Or for SQL Server:
+# DB_TYPE=sqlserver
+# DB_USER=sql_server_user
+# DB_PASSWORD=sql_server_password
+# DB_SERVER=sql_server_host
+# DB_NAME=database_name
+
+# Twilio (optional)
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_NUMBER=...
+
+# WhatsApp Business API (WABA)
+WABA_PHONE_NUMBER_ID=...
+WABA_ACCESS_TOKEN=...
 ```
 
 ## 🚀 Available Commands
 
 - `npm run setup-db`: Setup the database
-- `npm run start-api`: Start the API server
+- `npm run start-api`: Start the API server (development mode)
 - `npm run compile`: Compile TypeScript code
 - `npm start`: Start in a production mode (after compilation)
 
@@ -254,14 +285,24 @@ SUPABASE_KEY=your-supabase-service-role-key
 
 ```
 src/
-├── constants/     # Constants and configuration
-├── controllers/   # API controllers
-├── database/      # Database config and models
-├── schemas/       # Validation schemas
-├── utils/         # Utilities
-├── config/        # Server configuration
-└── tools/         # Assistant dynamic tools
+├── channels/       # Parsers and senders for each channel (twilio, waba, etc.)
+├── constants/      # Constants and configuration
+├── controllers/    # API controllers (main webhook)
+├── database/       # Database config and models
+├── schemas/        # Validation schemas
+├── services/       # Common message processing logic
+├── utils/          # Utilities
+├── config/         # Server configuration
+└── tools/          # Assistant dynamic tools
 ```
+
+## 🌐 Multi-Channel Support & Single Webhook
+
+- The `/assistant` endpoint accepts messages from Twilio and native WhatsApp Business API (and is extensible to more channels).
+- The system automatically detects the source channel, normalizes the message, and responds using the appropriate format:
+  - **Twilio:** Responds with XML (TwiML) using `ResponseHandler`.
+  - **WABA:** Sends the response using Meta's API.
+- To add more channels, just create a file in `channels/` and update the dispatcher.
 
 ## 🔧 Database Configuration
 
@@ -317,32 +358,35 @@ Switch environments using the `NODE_ENV` variable:
 - `development`: Uses SQLite (default)
 - `production`: Uses SQL Server or Supabase
 
-## 🛡️ Security
-
-- Sensitive credentials are managed via environment variables
-- Phone numbers are processed internally
-- Database transactions are atomic
-- Security best practices are implemented for the API
-
-## 📝 API Usage
+## 📝 API Usage & Webhook
 
 ### Main Endpoint
 ```http
 POST /assistant
-Content-Type: application/x-www-form-urlencoded
+Content-Type: application/json or application/x-www-form-urlencoded
 
+// Twilio:
 Body=user_message&From=phone_number
+
+// WhatsApp Business API:
+{
+  "messages": [
+    { "from": "phone_number", "text": { "body": "user_message" }, ... }
+  ]
+}
 ```
 
 ### Example Response
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Message>Assistant response</Message>
-</Response>
-```
+- **Twilio:** XML (TwiML)
+- **WABA:** Message sent via Meta API
+- **Other channels:** Adaptable
 
 ## 🔄 Extensibility
+
+### Adding New Channels
+1. Create a new file in the `channels/` folder (e.g., `telegram.ts`)
+2. Implement the parser and sender for that channel
+3. Register it in the channel dispatcher
 
 ### Adding New Tools
 1. Create a new file in the `tools/` folder
