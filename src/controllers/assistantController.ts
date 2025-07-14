@@ -16,6 +16,7 @@ if (process.env.OPENAI_BASE_URL) {
 }
 const openai = new OpenAI(openaiConfig);
 const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+const maxTokens = process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) : 512; // Valor por defecto
 
 export class AssistantController {
   static async handleMessage(request: FastifyRequest, reply: FastifyReply) {
@@ -40,7 +41,8 @@ export class AssistantController {
     ];
     let response = await openai.chat.completions.create({
       model,
-      messages
+      messages,
+      max_tokens: maxTokens
     });
     let content = response.choices[0].message?.content ?? '';
     // Detectar tool-call
@@ -55,7 +57,8 @@ export class AssistantController {
       messages.push({ role: 'function', name: toolName, content: toolResult });
       response = await openai.chat.completions.create({
         model,
-        messages
+        messages,
+        max_tokens: maxTokens
       });
       content = response.choices[0].message?.content ?? '';
     }

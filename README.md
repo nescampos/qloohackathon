@@ -67,6 +67,10 @@ TWILIO_NUMBER=...
 # WhatsApp Business API (WABA)
 WABA_PHONE_NUMBER_ID=...
 WABA_ACCESS_TOKEN=...
+
+# Número máximo de tokens para las respuestas del agente. Por defecto es 512 si no se especifica.
+# MAX_TOKENS: (Optional / Opcional)
+
 ```
 
 ## 🚀 Comandos Disponibles
@@ -272,6 +276,8 @@ TWILIO_NUMBER=...
 # WhatsApp Business API (WABA)
 WABA_PHONE_NUMBER_ID=...
 WABA_ACCESS_TOKEN=...
+
+# MAX_TOKENS: (Optional) Maximum number of tokens for agent responses. Default is 512 if not set.  
 ```
 
 ## 🚀 Available Commands
