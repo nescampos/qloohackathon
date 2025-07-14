@@ -43,6 +43,14 @@ OPENAI_MODEL=gpt-3.5-turbo
 # Si usas un proveedor alternativo, configura el endpoint:
 # OPENAI_BASE_URL=https://api.tu-proveedor.com/v1
 
+# Número máximo de tokens para las respuestas del agente. Por defecto es 512 si no se especifica.
+# MAX_TOKENS=
+
+# Cantidad de mensajes previos que se usan como contexto de la conversación. Por defecto es 6 si no se especifica. 
+# HISTORY_SIZE= 
+  
+
+
 # Server Configuration
 PORT=3000
 HOST=0.0.0.0
@@ -67,9 +75,6 @@ TWILIO_NUMBER=...
 # WhatsApp Business API (WABA)
 WABA_PHONE_NUMBER_ID=...
 WABA_ACCESS_TOKEN=...
-
-# Número máximo de tokens para las respuestas del agente. Por defecto es 512 si no se especifica.
-# MAX_TOKENS: (Optional / Opcional)
 
 ```
 
@@ -252,6 +257,12 @@ OPENAI_MODEL=gpt-3.5-turbo
 # If using an alternative provider, set the endpoint:
 # OPENAI_BASE_URL=https://api.your-provider.com/v1
 
+# Maximum number of tokens for agent responses. Default is 512 if not set. 
+# MAX_TOKENS=
+
+# Number of previous messages to include as conversation context. Default is 6 if not set.  
+# HISTORY_SIZE=
+
 # Server Configuration
 PORT=3000
 HOST=0.0.0.0
@@ -276,8 +287,6 @@ TWILIO_NUMBER=...
 # WhatsApp Business API (WABA)
 WABA_PHONE_NUMBER_ID=...
 WABA_ACCESS_TOKEN=...
-
-# MAX_TOKENS: (Optional) Maximum number of tokens for agent responses. Default is 512 if not set.  
 ```
 
 ## 🚀 Available Commands

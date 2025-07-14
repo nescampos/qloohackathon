@@ -17,6 +17,7 @@ if (process.env.OPENAI_BASE_URL) {
 const openai = new OpenAI(openaiConfig);
 const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
 const maxTokens = process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) : 512; // Valor por defecto
+const historySize = process.env.HISTORY_SIZE ? parseInt(process.env.HISTORY_SIZE, 10) : 6; // Por defecto 6
 
 export class AssistantController {
   static async handleMessage(request: FastifyRequest, reply: FastifyReply) {
@@ -35,8 +36,16 @@ export class AssistantController {
 
   // Nuevo método para el flujo de IA/tool-calling puro
   static async processAIMessage(from: string, text: string): Promise<string> {
+    // Recuperar historial reciente
+    const recentMessages = await db.getRecentMessages(from, historySize);
+    // Convertir historial a formato OpenAI
+    const history: ChatCompletionMessageParam[] = recentMessages
+      .reverse() // Para que estén en orden cronológico
+      .map((msg) => ({ role: msg.role as 'user' | 'assistant', content: msg.message }));
+    // Construir mensajes con historial + mensaje actual
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: assistantPrompt },
+      ...history,
       { role: 'user', content: text }
     ];
     let response = await openai.chat.completions.create({
