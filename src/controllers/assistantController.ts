@@ -18,6 +18,7 @@ const openai = new OpenAI(openaiConfig);
 const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
 const maxTokens = process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) : 512; // Valor por defecto
 const historySize = process.env.HISTORY_SIZE ? parseInt(process.env.HISTORY_SIZE, 10) : 6; // Por defecto 6
+const modelTemperature = process.env.MODEL_TEMPERATURE ? parseFloat(process.env.MODEL_TEMPERATURE) : 0.2;
 
 export class AssistantController {
   static async handleMessage(request: FastifyRequest, reply: FastifyReply) {
@@ -51,7 +52,8 @@ export class AssistantController {
     let response = await openai.chat.completions.create({
       model,
       messages,
-      max_tokens: maxTokens
+      max_tokens: maxTokens,
+      temperature: modelTemperature
     });
     let content = response.choices[0].message?.content ?? '';
     // Detectar tool-call
@@ -67,7 +69,8 @@ export class AssistantController {
       response = await openai.chat.completions.create({
         model,
         messages,
-        max_tokens: maxTokens
+        max_tokens: maxTokens,
+        temperature: modelTemperature
       });
       content = response.choices[0].message?.content ?? '';
     }

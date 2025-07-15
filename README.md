@@ -48,8 +48,9 @@ OPENAI_MODEL=gpt-3.5-turbo
 
 # Cantidad de mensajes previos que se usan como contexto de la conversación. Por defecto es 6 si no se especifica. 
 # HISTORY_SIZE= 
-  
 
+# Temperatura del modelo para generar respuestas más aleatorias o fijas
+# MODEL_TEMPERATURE=
 
 # Server Configuration
 PORT=3000
@@ -262,6 +263,9 @@ OPENAI_MODEL=gpt-3.5-turbo
 
 # Number of previous messages to include as conversation context. Default is 6 if not set.  
 # HISTORY_SIZE=
+
+# Model temperature to generate more random or fixed responses
+# MODEL_TEMPERATURE=
 
 # Server Configuration
 PORT=3000
