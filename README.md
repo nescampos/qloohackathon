@@ -91,14 +91,13 @@ WABA_ACCESS_TOKEN=...
 ```
 src/
 ├── channels/       # Parsers y envío para cada canal (twilio, waba, etc.)
-├── constants/      # Constantes y configuraciones
+├── clientConfig/   # Prompt, configuraciones y tools específicas, para el caso de uso
 ├── controllers/    # Controladores de la API (webhook principal)
 ├── database/       # Configuración y modelos de la base de datos
 ├── schemas/        # Esquemas de validación
 ├── services/       # Lógica común de procesamiento de mensajes
 ├── utils/          # Utilidades
 ├── config/         # Configuración del servidor
-└── tools/          # Tools dinámicas del asistente
 ```
 
 ## 🌐 Soporte Multi-Canal y Webhook Único
@@ -305,14 +304,13 @@ WABA_ACCESS_TOKEN=...
 ```
 src/
 ├── channels/       # Parsers and senders for each channel (twilio, waba, etc.)
-├── constants/      # Constants and configuration
+├── clientConfig/   # Prompt, configurations and specific tools for the use case
 ├── controllers/    # API controllers (main webhook)
 ├── database/       # Database config and models
 ├── schemas/        # Validation schemas
 ├── services/       # Common message processing logic
 ├── utils/          # Utilities
 ├── config/         # Server configuration
-└── tools/          # Assistant dynamic tools
 ```
 
 ## 🌐 Multi-Channel Support & Single Webhook

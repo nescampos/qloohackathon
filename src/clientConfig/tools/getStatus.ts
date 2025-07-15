@@ -1,6 +1,13 @@
-import type { ToolConfig } from "./allTools";
-import type { GetStatusArgs } from "./toolInterfaces";
-import { db } from "../database/db";
+import type { ToolConfig } from "../../utils/toolConfig";
+import { db } from "../../database/db";
+
+
+/**
+ * Arguments for the get_status tool
+ */
+export interface GetStatusArgs {
+  number: string;
+}
 
 /**
  * Get the status of a user's debt.

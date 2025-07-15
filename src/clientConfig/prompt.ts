@@ -1,4 +1,4 @@
-import { tools } from "../tools/allTools";
+import { tools } from "./allTools";
 
 // Función para generar la descripción de las tools
 function generateToolsDescription() {

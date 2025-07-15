@@ -1,5 +1,3 @@
-import { getStatusTool } from "./getStatus";
-
 export interface ToolConfig<T = any> {
     /**
      * The definition of the tool.
@@ -21,11 +19,4 @@ export interface ToolConfig<T = any> {
      * The handler function that will be called when the tool is executed.
      */
     handler: (args: T) => Promise<any>;
-  }
-
-
-  export const tools: Record<string, ToolConfig> = {
-    // == READ == \\
-    get_status: getStatusTool,
-  };
-  
+}
