@@ -12,52 +12,57 @@ export class SupabaseDatabase implements IDatabase {
     // No-op: Supabase tables must be created manually in the dashboard.
   }
 
-  async getThreadId(phoneNumber: string): Promise<string | null> {
+  async getOrCreateUserProviderIdentity(provider: string, externalId: string, name?: string): Promise<{ identityId: number, globalUserId: number }> {
+    // Buscar identidad existente
     const { data, error } = await this.client
-      .from('user_threads')
-      .select('thread_id')
-      .eq('phone_number', phoneNumber)
+      .from('user_provider_identity')
+      .select('id, global_user_id')
+      .eq('provider', provider)
+      .eq('external_id', externalId)
       .maybeSingle();
     if (error) throw error;
-    return data?.thread_id || null;
+    if (data) {
+      return { identityId: data.id, globalUserId: data.global_user_id };
+    }
+    // Crear global_user
+    const { data: userData, error: userError } = await this.client
+      .from('global_user')
+      .insert({ name: name || externalId })
+      .select('id')
+      .single();
+    if (userError) throw userError;
+    const globalUserId = userData.id;
+    // Crear identidad
+    const { data: identityData, error: identityError } = await this.client
+      .from('user_provider_identity')
+      .insert({ global_user_id: globalUserId, provider, external_id: externalId })
+      .select('id')
+      .single();
+    if (identityError) throw identityError;
+    return { identityId: identityData.id, globalUserId };
   }
 
-  async saveThreadId(phoneNumber: string, threadId: string): Promise<void> {
+  async saveMessageByProvider(provider: string, externalId: string, message: string, role: 'user' | 'assistant', name?: string): Promise<void> {
+    const { identityId } = await this.getOrCreateUserProviderIdentity(provider, externalId, name);
     const { error } = await this.client
-      .from('user_threads')
-      .upsert({
-        phone_number: phoneNumber,
-        thread_id: threadId,
-        last_interaction: new Date().toISOString(),
-      }, { onConflict: 'phone_number' });
+      .from('chat_history')
+      .insert({ user_provider_identity_id: identityId, message, role, timestamp: new Date().toISOString() });
     if (error) throw error;
   }
 
-  async saveMessage(phoneNumber: string, threadId: string, message: string, role: 'user' | 'assistant'): Promise<void> {
-    const { error: msgError } = await this.client
-      .from('chat_history')
-      .insert({
-        phone_number: phoneNumber,
-        thread_id: threadId,
-        message,
-        role,
-        timestamp: new Date().toISOString(),
-      });
-    if (msgError) {
-      throw msgError;
-    }
-    const { error: updateError } = await this.client
-      .from('user_threads')
-      .update({ last_interaction: new Date().toISOString() })
-      .eq('phone_number', phoneNumber);
-    if (updateError) throw updateError;
-  }
-
-  async getRecentMessages(phoneNumber: string, limit: number = 10): Promise<Array<{message: string, role: string, timestamp: string}>> {
+  async getRecentMessagesByProvider(provider: string, externalId: string, limit: number = 10): Promise<Array<{message: string, role: string, timestamp: string}>> {
+    const { data: identity, error: identityError } = await this.client
+      .from('user_provider_identity')
+      .select('id')
+      .eq('provider', provider)
+      .eq('external_id', externalId)
+      .maybeSingle();
+    if (identityError) throw identityError;
+    if (!identity) return [];
     const { data, error } = await this.client
       .from('chat_history')
       .select('message, role, timestamp')
-      .eq('phone_number', phoneNumber)
+      .eq('user_provider_identity_id', identity.id)
       .order('timestamp', { ascending: false })
       .limit(limit);
     if (error) throw error;

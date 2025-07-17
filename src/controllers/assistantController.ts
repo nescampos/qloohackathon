@@ -35,9 +35,8 @@ export class AssistantController {
   static async handleMessage(request: FastifyRequest, reply: FastifyReply) {
     try {
       const { from, text, provider } = parseMessage(request.body);
-      const responseText = await messageService.processUserMessage(from, text);
+      const responseText = await messageService.processUserMessage(provider, from, text);
       await sendMessage(provider, from, responseText, reply);
-      // Solo responde aquí si no es Twilio (Twilio ya respondió en sendTwilioMessage)
       if (provider !== 'twilio') {
         reply.send({ success: true });
       }
@@ -46,15 +45,12 @@ export class AssistantController {
     }
   }
 
-  // Nuevo método para el flujo de IA/tool-calling puro
-  static async processAIMessage(from: string, text: string): Promise<string> {
+  static async processAIMessage(provider: string, externalId: string, text: string, name?: string): Promise<string> {
     // Recuperar historial reciente
-    const recentMessages = await db.getRecentMessages(from, historySize);
-    // Convertir historial a formato OpenAI
+    const recentMessages = await db.getRecentMessagesByProvider(provider, externalId, historySize);
     const history: ChatCompletionMessageParam[] = recentMessages
-      .reverse() // Para que estén en orden cronológico
+      .reverse()
       .map((msg) => ({ role: msg.role as 'user' | 'assistant', content: msg.message }));
-    // Construir mensajes con historial + mensaje actual
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: assistantPrompt },
       ...history,
@@ -67,30 +63,24 @@ export class AssistantController {
       temperature: modelTemperature
     });
     let content = response.choices[0].message?.content ?? '';
-    // Detectar tool-call
     const toolCallMatch = content.match(/^\[TOOL_CALL\]\s*(\w+)\((.*)\)$/);
     if (toolCallMatch) {
       const [, toolName, paramsRaw] = toolCallMatch;
       const tool = tools[toolName];
       if (!tool) throw new Error(`Tool ${toolName} not found`);
-      // 1. Parsear los parámetros del string
       let params = parseParams(paramsRaw);
-      // 2. Si la tool requiere el número de usuario, añadirlo automáticamente
       if (tool.definition.function.parameters.properties.number && !params.number) {
-        params.number = from;
+        params.number = externalId;
       }
-      // 3. Validar contra el schema de la tool
       const required = tool.definition.function.parameters.required || [];
       for (const req of required) {
         if (!(req in params)) {
           throw new Error(`Falta el parámetro requerido: ${req}`);
         }
       }
-      // 4. Ejecutar la tool con los parámetros normalizados
       const toolResult = await tool.handler(params);
       messages.push({ role: 'assistant', content });
       messages.push({ role: 'function', name: toolName, content: toolResult });
-
       response = await openai.chat.completions.create({
         model,
         messages,
@@ -100,13 +90,8 @@ export class AssistantController {
       content = response.choices[0].message?.content ?? '';
     }
     // Guardar mensajes en la base de datos
-    let threadId = await db.getThreadId(from);
-    if (!threadId) {
-      threadId = uuidv4();
-      await db.saveThreadId(from, threadId);
-    }
-    await db.saveMessage(from, threadId, text, 'user');
-    await db.saveMessage(from, threadId, content, 'assistant');
+    await db.saveMessageByProvider(provider, externalId, text, 'user', name);
+    await db.saveMessageByProvider(provider, externalId, content, 'assistant', name);
     return content;
   }
 } 

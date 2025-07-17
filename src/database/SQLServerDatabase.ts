@@ -26,67 +26,49 @@ export class SQLServerDatabase implements IDatabase {
      */
     async initialize(): Promise<void> {
         await this.pool.connect();
-        
-        // Create tables in a single transaction
         const transaction = new sql.Transaction(this.pool);
         try {
             await transaction.begin();
-
-            // Tabla para almacenar la relación entre usuarios y sus hilos de conversación
+            // Tabla de usuario global
             await transaction.request().query(`
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_threads')
-                CREATE TABLE user_threads (
-                    phone_number NVARCHAR(50) PRIMARY KEY,
-                    thread_id NVARCHAR(100) NOT NULL,
-                    created_at DATETIME2 DEFAULT GETDATE(),
-                    last_interaction DATETIME2 DEFAULT GETDATE()
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'global_user')
+                CREATE TABLE global_user (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    name NVARCHAR(250)
                 )
             `);
-
-            // Tabla para almacenar el historial de mensajes
+            // Identidad de usuario por proveedor
+            await transaction.request().query(`
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_provider_identity')
+                CREATE TABLE user_provider_identity (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    global_user_id INT NOT NULL,
+                    provider NVARCHAR(100) NOT NULL,
+                    external_id NVARCHAR(250) NOT NULL,
+                    CONSTRAINT UQ_provider_external_id UNIQUE (provider, external_id),
+                    FOREIGN KEY (global_user_id) REFERENCES global_user(id)
+                )
+            `);
+            // Historial de mensajes
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'chat_history')
                 CREATE TABLE chat_history (
                     id INT IDENTITY(1,1) PRIMARY KEY,
-                    phone_number NVARCHAR(50),
-                    thread_id NVARCHAR(100),
+                    user_provider_identity_id INT NOT NULL,
                     message NVARCHAR(MAX),
                     role NVARCHAR(50),
                     timestamp DATETIME2 DEFAULT GETDATE(),
-                    FOREIGN KEY (phone_number) REFERENCES user_threads(phone_number)
+                    FOREIGN KEY (user_provider_identity_id) REFERENCES user_provider_identity(id)
                 )
             `);
-
-            // Tabla para almacenar la deuda de los usuarios
             await transaction.request().query(`
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_debt')
-                CREATE TABLE IF NOT EXISTS user_debt (
-                    phone_number NVARCHAR(50) PRIMARY KEY,
-                    name NVARCHAR(250),
-                    debt_amount DECIMAL(10,2) NOT NULL,
-                    due_date DATE NOT NULL,
-                    created_at DATETIME2 DEFAULT GETDATE()
-                )
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_chat_history_user_provider_identity_id')
+                CREATE INDEX idx_chat_history_user_provider_identity_id ON chat_history(user_provider_identity_id)
             `);
-
-
-            // Índices para optimizar las consultas frecuentes
-            await transaction.request().query(`
-                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_chat_history_phone_number')
-                CREATE INDEX idx_chat_history_phone_number ON chat_history(phone_number)
-            `);
-
             await transaction.request().query(`
                 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_chat_history_timestamp')
                 CREATE INDEX idx_chat_history_timestamp ON chat_history(timestamp)
             `);
-
-            // Índice para optimizar búsquedas por fecha de vencimiento
-            await transaction.request().query(`
-                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_user_debt_due_date')
-                CREATE INDEX idx_user_debt_due_date ON user_debt(due_date)
-            `);
-
             await transaction.commit();
         } catch (error) {
             await transaction.rollback();
@@ -94,121 +76,51 @@ export class SQLServerDatabase implements IDatabase {
         }
     }
 
-    /**
-     * @inheritdoc
-     * Utiliza parámetros SQL para prevenir inyección SQL.
-     */
-    async getThreadId(phoneNumber: string): Promise<string | null> {
-        const result = await this.pool.request()
-            .input('phoneNumber', sql.NVarChar, phoneNumber)
-            .query('SELECT thread_id FROM user_threads WHERE phone_number = @phoneNumber');
-        
-        return result.recordset[0]?.thread_id || null;
+    async getOrCreateUserProviderIdentity(provider: string, externalId: string, name?: string): Promise<{ identityId: number, globalUserId: number }> {
+        // Buscar identidad existente
+        let result = await this.pool.request()
+            .input('provider', sql.NVarChar, provider)
+            .input('externalId', sql.NVarChar, externalId)
+            .query('SELECT id, global_user_id FROM user_provider_identity WHERE provider = @provider AND external_id = @externalId');
+        if (result.recordset.length > 0) {
+            return { identityId: result.recordset[0].id, globalUserId: result.recordset[0].global_user_id };
+        }
+        // Crear global_user
+        let insertUser = await this.pool.request()
+            .input('name', sql.NVarChar, name || externalId)
+            .query('INSERT INTO global_user (name) OUTPUT INSERTED.id VALUES (@name)');
+        const globalUserId = insertUser.recordset[0].id;
+        // Crear identidad
+        let insertIdentity = await this.pool.request()
+            .input('globalUserId', sql.Int, globalUserId)
+            .input('provider', sql.NVarChar, provider)
+            .input('externalId', sql.NVarChar, externalId)
+            .query('INSERT INTO user_provider_identity (global_user_id, provider, external_id) OUTPUT INSERTED.id VALUES (@globalUserId, @provider, @externalId)');
+        const identityId = insertIdentity.recordset[0].id;
+        return { identityId, globalUserId };
     }
 
-    /**
-     * @inheritdoc
-     * Utiliza la sentencia MERGE de SQL Server para manejar la inserción/actualización
-     * en una única operación atómica.
-     */
-    async saveThreadId(phoneNumber: string, threadId: string): Promise<void> {
+    async saveMessageByProvider(provider: string, externalId: string, message: string, role: 'user' | 'assistant', name?: string): Promise<void> {
+        const { identityId } = await this.getOrCreateUserProviderIdentity(provider, externalId, name);
         await this.pool.request()
-            .input('phoneNumber', sql.NVarChar, phoneNumber)
-            .input('threadId', sql.NVarChar, threadId)
-            .query(`
-                MERGE user_threads AS target
-                USING (SELECT @phoneNumber as phone_number, @threadId as thread_id) AS source
-                ON target.phone_number = source.phone_number
-                WHEN MATCHED THEN
-                    UPDATE SET thread_id = source.thread_id, last_interaction = GETDATE()
-                WHEN NOT MATCHED THEN
-                    INSERT (phone_number, thread_id)
-                    VALUES (source.phone_number, source.thread_id);
-            `);
+            .input('identityId', sql.Int, identityId)
+            .input('message', sql.NVarChar, message)
+            .input('role', sql.NVarChar, role)
+            .query('INSERT INTO chat_history (user_provider_identity_id, message, role) VALUES (@identityId, @message, @role)');
     }
 
-    /**
-     * @inheritdoc
-     * Implementa una transacción explícita para garantizar la consistencia
-     * al guardar el mensaje y actualizar la última interacción.
-     */
-    async saveMessage(phoneNumber: string, threadId: string, message: string, role: 'user' | 'assistant'): Promise<void> {
-        const transaction = new sql.Transaction(this.pool);
-        try {
-            await transaction.begin();
-
-            // Inserta el nuevo mensaje
-            await transaction.request()
-                .input('phoneNumber', sql.NVarChar, phoneNumber)
-                .input('threadId', sql.NVarChar, threadId)
-                .input('message', sql.NVarChar, message)
-                .input('role', sql.NVarChar, role)
-                .query(`
-                    INSERT INTO chat_history (phone_number, thread_id, message, role)
-                    VALUES (@phoneNumber, @threadId, @message, @role)
-                `);
-
-            // Actualiza la marca de tiempo de última interacción
-            await transaction.request()
-                .input('phoneNumber', sql.NVarChar, phoneNumber)
-                .query(`
-                    UPDATE user_threads
-                    SET last_interaction = GETDATE()
-                    WHERE phone_number = @phoneNumber
-                `);
-
-            await transaction.commit();
-        } catch (error) {
-            await transaction.rollback();
-            throw error;
-        }
-    }
-
-    /**
-     * @inheritdoc
-     * Utiliza la sintaxis moderna de SQL Server para paginación (OFFSET-FETCH)
-     * que es más eficiente que TOP o ROW_NUMBER().
-     */
-    async getRecentMessages(phoneNumber: string, limit: number = 10): Promise<Array<{message: string, role: string, timestamp: string}>> {
-        const result = await this.pool.request()
-            .input('phoneNumber', sql.NVarChar, phoneNumber)
+    async getRecentMessagesByProvider(provider: string, externalId: string, limit: number = 10): Promise<Array<{message: string, role: string, timestamp: string}>> {
+        let result = await this.pool.request()
+            .input('provider', sql.NVarChar, provider)
+            .input('externalId', sql.NVarChar, externalId)
+            .query('SELECT id FROM user_provider_identity WHERE provider = @provider AND external_id = @externalId');
+        if (result.recordset.length === 0) return [];
+        const identityId = result.recordset[0].id;
+        let messages = await this.pool.request()
+            .input('identityId', sql.Int, identityId)
             .input('limit', sql.Int, limit)
-            .query(`
-                SELECT message, role, timestamp
-                FROM chat_history
-                WHERE phone_number = @phoneNumber
-                ORDER BY timestamp DESC
-                OFFSET 0 ROWS
-                FETCH NEXT @limit ROWS ONLY
-            `);
-
-        return result.recordset;
-    }
-
-    /**
-     * @inheritdoc
-     * Utiliza la sentencia MERGE de SQL Server para manejar la inserción/actualización
-     * de la información de deuda en una única operación atómica.
-     */
-    async saveUserDebt(phoneNumber: string, name: string | null, debtAmount: number, dueDate: Date): Promise<void> {
-        await this.pool.request()
-            .input('phoneNumber', sql.NVarChar, phoneNumber)
-            .input('name', sql.NVarChar, name)
-            .input('debtAmount', sql.Decimal(10, 2), debtAmount)
-            .input('dueDate', sql.Date, dueDate)
-            .query(`
-                MERGE user_debt AS target
-                USING (SELECT @phoneNumber as phone_number, @name as name, @debtAmount as debt_amount, @dueDate as due_date) AS source
-                ON target.phone_number = source.phone_number
-                WHEN MATCHED THEN
-                    UPDATE SET 
-                        name = source.name,
-                        debt_amount = source.debt_amount,
-                        due_date = source.due_date
-                WHEN NOT MATCHED THEN
-                    INSERT (phone_number, name, debt_amount, due_date)
-                    VALUES (source.phone_number, source.name, source.debt_amount, source.due_date);
-            `);
+            .query(`SELECT message, role, timestamp FROM chat_history WHERE user_provider_identity_id = @identityId ORDER BY timestamp DESC OFFSET 0 ROWS FETCH NEXT @limit ROWS ONLY`);
+        return messages.recordset;
     }
 
     /**

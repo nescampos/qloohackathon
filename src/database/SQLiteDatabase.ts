@@ -37,58 +37,47 @@ export class SQLiteDatabase implements IDatabase {
     }
 
     /**
-     * Inicializa la estructura de la base de datos.
-     * Crea las tablas necesarias y sus índices en una única transacción
-     * para garantizar la consistencia de la base de datos.
+     * Inicializa la estructura de la base de datos para usuarios globales y múltiples proveedores.
      */
     async initialize() {
         await this.run('BEGIN TRANSACTION');
         try {
-            // Tabla para almacenar la relación entre usuarios y sus hilos de conversación
+            // Tabla de usuario global
             await this.run(`
-                CREATE TABLE IF NOT EXISTS user_threads (
-                    phone_number TEXT PRIMARY KEY,
-                    thread_id TEXT NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    last_interaction DATETIME DEFAULT CURRENT_TIMESTAMP
+                CREATE TABLE IF NOT EXISTS global_user (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT
                 )
             `);
 
-            // Tabla para almacenar el historial de mensajes
+            // Identidad de usuario por proveedor
+            await this.run(`
+                CREATE TABLE IF NOT EXISTS user_provider_identity (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    global_user_id INTEGER NOT NULL,
+                    provider TEXT NOT NULL,
+                    external_id TEXT NOT NULL,
+                    UNIQUE(provider, external_id),
+                    FOREIGN KEY (global_user_id) REFERENCES global_user(id)
+                )
+            `);
+
+            // Historial de mensajes
             await this.run(`
                 CREATE TABLE IF NOT EXISTS chat_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    phone_number TEXT,
-                    thread_id TEXT,
+                    user_provider_identity_id INTEGER NOT NULL,
                     message TEXT,
                     role TEXT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (phone_number) REFERENCES user_threads(phone_number)
+                    FOREIGN KEY (user_provider_identity_id) REFERENCES user_provider_identity(id)
                 )
             `);
 
             // Índices para optimizar las consultas frecuentes
-            await this.run('CREATE INDEX IF NOT EXISTS idx_chat_history_phone_number ON chat_history(phone_number)');
+            await this.run('CREATE INDEX IF NOT EXISTS idx_chat_history_user_provider_identity_id ON chat_history(user_provider_identity_id)');
             await this.run('CREATE INDEX IF NOT EXISTS idx_chat_history_timestamp ON chat_history(timestamp)');
-            
-            // Tabla para almacenar la deuda de los usuarios
-            await this.run(`
-                CREATE TABLE IF NOT EXISTS user_debt (
-                    phone_number TEXT PRIMARY KEY,
-                    name TEXT,
-                    debt_amount DECIMAL(10,2) NOT NULL,
-                    due_date DATE NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-
-            // Índice para optimizar búsquedas por fecha de vencimiento
-            await this.run('CREATE INDEX IF NOT EXISTS idx_user_debt_due_date ON user_debt(due_date)');
-            
             await this.run('COMMIT');
-
-            // Prepara las consultas más utilizadas
-            this.prepareStatements();
         } catch (error) {
             await this.run('ROLLBACK');
             throw error;
@@ -111,6 +100,66 @@ export class SQLiteDatabase implements IDatabase {
         );
         this.preparedStatements.updateLastInteraction = this.db.prepare(
             'UPDATE user_threads SET last_interaction = CURRENT_TIMESTAMP WHERE phone_number = ?'
+        );
+    }
+
+    /**
+     * Busca o crea una identidad de usuario por proveedor.
+     * Si no existe, crea un global_user y la identidad.
+     */
+    async getOrCreateUserProviderIdentity(provider: string, externalId: string, name?: string): Promise<{ identityId: number, globalUserId: number }> {
+        // Buscar identidad existente
+        let row = await this.get(
+            'SELECT id, global_user_id FROM user_provider_identity WHERE provider = ? AND external_id = ?',
+            [provider, externalId]
+        );
+        if (row) {
+            return { identityId: row.id, globalUserId: row.global_user_id };
+        }
+        // Crear global_user
+        const result = await this.run(
+            'INSERT INTO global_user (name) VALUES (?)',
+            [name || externalId]
+        );
+        // SQLite: lastID está en result.lastID, pero con promisify puede no estar, así que obtener el último id insertado
+        const globalUserIdRow = await this.get('SELECT last_insert_rowid() as id');
+        const globalUserId = globalUserIdRow.id;
+        // Crear identidad
+        const identityResult = await this.run(
+            'INSERT INTO user_provider_identity (global_user_id, provider, external_id) VALUES (?, ?, ?)',
+            [globalUserId, provider, externalId]
+        );
+        const identityIdRow = await this.get('SELECT last_insert_rowid() as id');
+        return { identityId: identityIdRow.id, globalUserId };
+    }
+
+    /**
+     * Guarda un mensaje en el historial de chat usando la identidad de usuario por proveedor.
+     */
+    async saveMessageByProvider(provider: string, externalId: string, message: string, role: 'user' | 'assistant', name?: string): Promise<void> {
+        const { identityId } = await this.getOrCreateUserProviderIdentity(provider, externalId, name);
+        await this.run(
+            'INSERT INTO chat_history (user_provider_identity_id, message, role) VALUES (?, ?, ?)',
+            [identityId, message, role]
+        );
+    }
+
+    /**
+     * Obtiene los mensajes más recientes para una identidad de usuario por proveedor.
+     */
+    async getRecentMessagesByProvider(provider: string, externalId: string, limit: number = 10): Promise<Array<{message: string, role: string, timestamp: string}>> {
+        const row = await this.get(
+            'SELECT id FROM user_provider_identity WHERE provider = ? AND external_id = ?',
+            [provider, externalId]
+        );
+        if (!row) return [];
+        return await this.all(
+            `SELECT message, role, timestamp 
+             FROM chat_history 
+             WHERE user_provider_identity_id = ? 
+             ORDER BY timestamp DESC 
+             LIMIT ?`,
+            [row.id, limit]
         );
     }
 

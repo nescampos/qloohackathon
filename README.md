@@ -130,32 +130,29 @@ En producción, puedes usar **SQL Server** o **Supabase**. Configura las siguien
 
 ##### Estructura de tablas para Supabase (Postgres):
 ```sql
--- Tabla de hilos de usuario
-CREATE TABLE user_threads (
-  phone_number VARCHAR PRIMARY KEY,
-  thread_id VARCHAR NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  last_interaction TIMESTAMP DEFAULT NOW()
+CREATE TABLE global_user (
+  id SERIAL PRIMARY KEY,
+  name TEXT
 );
 
--- Historial de mensajes
+CREATE TABLE user_provider_identity (
+  id SERIAL PRIMARY KEY,
+  global_user_id INTEGER NOT NULL REFERENCES global_user(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  UNIQUE (provider, external_id)
+);
+
 CREATE TABLE chat_history (
   id SERIAL PRIMARY KEY,
-  phone_number VARCHAR REFERENCES user_threads(phone_number),
-  thread_id VARCHAR,
+  user_provider_identity_id INTEGER NOT NULL REFERENCES user_provider_identity(id) ON DELETE CASCADE,
   message TEXT,
-  role VARCHAR,
-  timestamp TIMESTAMP DEFAULT NOW()
+  role TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tabla de deudas de usuario
-CREATE TABLE user_debt (
-  phone_number VARCHAR PRIMARY KEY,
-  name VARCHAR,
-  debt_amount NUMERIC(10,2) NOT NULL,
-  due_date DATE NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+CREATE INDEX idx_chat_history_user_provider_identity_id ON chat_history(user_provider_identity_id);
+CREATE INDEX idx_chat_history_timestamp ON chat_history(timestamp);
 ```
 
 Cambia de entorno usando la variable `NODE_ENV`:
@@ -179,6 +176,12 @@ Body=mensaje_del_usuario&From=numero_telefono
   ]
 }
 ```
+
+
+### Flujo de identificación y guardado de mensajes
+- El backend identifica a cada usuario por la combinación de `provider` y `external_id`.
+- Si la identidad no existe, se crea un nuevo usuario global y la identidad.
+- Todos los mensajes se asocian a la identidad de usuario por proveedor, permitiendo conversaciones unificadas aunque el usuario cambie de canal.
 
 ### Ejemplo de Respuesta
 - **Twilio:** XML (TwiML)
@@ -343,32 +346,29 @@ In production, you can use **SQL Server** or **Supabase**. Set the following env
 
 ##### Table structure for Supabase (Postgres):
 ```sql
--- User threads table
-CREATE TABLE user_threads (
-  phone_number VARCHAR PRIMARY KEY,
-  thread_id VARCHAR NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  last_interaction TIMESTAMP DEFAULT NOW()
+CREATE TABLE global_user (
+  id SERIAL PRIMARY KEY,
+  name TEXT
 );
 
--- Message history
+CREATE TABLE user_provider_identity (
+  id SERIAL PRIMARY KEY,
+  global_user_id INTEGER NOT NULL REFERENCES global_user(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  UNIQUE (provider, external_id)
+);
+
 CREATE TABLE chat_history (
   id SERIAL PRIMARY KEY,
-  phone_number VARCHAR REFERENCES user_threads(phone_number),
-  thread_id VARCHAR,
+  user_provider_identity_id INTEGER NOT NULL REFERENCES user_provider_identity(id) ON DELETE CASCADE,
   message TEXT,
-  role VARCHAR,
-  timestamp TIMESTAMP DEFAULT NOW()
+  role TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- User debt table
-CREATE TABLE user_debt (
-  phone_number VARCHAR PRIMARY KEY,
-  name VARCHAR,
-  debt_amount NUMERIC(10,2) NOT NULL,
-  due_date DATE NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+CREATE INDEX idx_chat_history_user_provider_identity_id ON chat_history(user_provider_identity_id);
+CREATE INDEX idx_chat_history_timestamp ON chat_history(timestamp);
 ```
 
 Switch environments using the `NODE_ENV` variable:
@@ -392,6 +392,11 @@ Body=user_message&From=phone_number
   ]
 }
 ```
+
+### Identification and message storage flow
+- The backend identifies each user by the combination of `provider` and `external_id`.
+- If the identity does not exist, a new global user and identity are created.
+- All messages are associated with the user-provider identity, allowing unified conversations even if the user switches channels.
 
 ### Example Response
 - **Twilio:** XML (TwiML)

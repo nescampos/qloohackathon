@@ -40,13 +40,13 @@ async function getStatus(number: string) {
   
   
   try {
-    const userDebt = await db.getUserDebt(number);
+    const userDebt = false; //await db.getUserDebt(number);
     
     if (!userDebt) {
       return "No tienes deuda pendiente.";
     }
 
-    const today = new Date();
+    /* const today = new Date();
     const dueDate = new Date(userDebt.dueDate);
     const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -54,7 +54,7 @@ async function getStatus(number: string) {
       return `Tienes una deuda de $${userDebt.debtAmount.toFixed(2)} que vence el ${dueDate.toLocaleDateString()} con ${daysOverdue} días de atraso.`;
     } else {
       return `Tienes una deuda de $${userDebt.debtAmount.toFixed(2)} que vence el ${dueDate.toLocaleDateString()}.`;
-    }
+    } */
   } catch (error) {
     //console.error('Error al consultar la deuda:', error);
     return "Lo siento, hubo un error al consultar tu deuda. Por favor, intenta más tarde.";
