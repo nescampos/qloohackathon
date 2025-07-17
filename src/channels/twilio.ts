@@ -1,22 +1,36 @@
 import { FastifyReply } from 'fastify';
 const twilio = require('twilio');
 
+// Normaliza el número de Twilio a formato internacional con +
+function normalizeTwilioNumber(input: string): string {
+  if (input.startsWith('whatsapp:')) input = input.replace('whatsapp:', '');
+  if (!input.startsWith('+')) input = '+' + input;
+  return input;
+}
+// Formatea para Twilio (agrega whatsapp:)
+function formatForTwilio(phone: string): string {
+  if (!phone.startsWith('+')) phone = '+' + phone;
+  return 'whatsapp:' + phone;
+}
+
 export function parseTwilioMessage(body: any) {
   return {
-    from: body.From,
+    from: normalizeTwilioNumber(body.From),
     text: body.Body,
     provider: 'twilio'
   };
 }
 
 export async function sendTwilioMessage(to: string, text: string, reply?: FastifyReply) {
+  const formattedTo = formatForTwilio(to);
   // Si se pasa el objeto reply, usa ResponseHandler para responder en formato TwiML
   if (reply) {
     sendSuccess(reply, text);
     return;
   }
   // Si no, aquí podrías implementar el envío activo usando la API de Twilio si lo necesitas
-} 
+  // Ejemplo: await twilioClient.messages.create({ to: formattedTo, body: text, ... });
+}
 
 function sendSuccess(reply: FastifyReply, message: string): void {
   reply
