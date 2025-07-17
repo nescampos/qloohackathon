@@ -196,10 +196,24 @@ Body=mensaje_del_usuario&From=numero_telefono
 3. Regístralo en el dispatcher de canales
 
 ### Agregar Nuevas Tools
-1. Crea un nuevo archivo en la carpeta `tools/`
-2. Define la tool siguiendo el formato existente
-3. Registra la tool en `tools/allTools.ts`
-4. La tool se integrará automáticamente en el prompt del asistente
+1. Crea un nuevo archivo en la carpeta `tools/` (tools genéricas, disponibles para todas las instancias)
+2. O crea un archivo en `clientConfig/tools/` (tools específicas para un cliente)
+3. Registra la tool en el archivo correspondiente (`tools/allGeneralTools.ts` para genéricas, o en el export de `clientConfig/allTools.ts` para específicas)
+4. En el export final de `clientConfig/allTools.ts`, combina ambas:
+
+```ts
+import { tools as generalTools } from "../tools/allGeneralTools";
+import { getStatusTool } from "./tools/getStatus";
+
+export const tools = {
+  ...generalTools,
+  get_status: getStatusTool,
+  // ...otras tools específicas
+};
+```
+
+- Las tools específicas pueden sobrescribir a las genéricas si tienen el mismo nombre.
+- Así, cada instancia puede tener tools propias y las generales siempre estarán disponibles.
 
 > **Recomendación:** Cada nueva tool debería considerar un parámetro llamado `externalId` para recibir el identificador del usuario. Esto permite la identificación multi-canal y la trazabilidad correcta de las acciones del usuario.
 
@@ -413,21 +427,35 @@ Body=user_message&From=phone_number
 3. Register it in the channel dispatcher
 
 ### Adding New Tools
-1. Create a new file in the `tools/` folder
-2. Define the tool following the existing format
-3. Register the tool in `tools/allTools.ts`
-4. The tool will be automatically integrated into the assistant's prompt
+1. Create a new file in the `tools/` folder (generic tools, available for all instances)
+2. Or create a file in `clientConfig/tools/` (client-specific tools)
+3. Register the tool in the corresponding file (`tools/allGeneralTools.ts` for generic, or in the export of `clientConfig/allTools.ts` for specific)
+4. In the final export of `clientConfig/allTools.ts`, combine both:
 
-> **Recommendation:** Each new tool should consider a parameter named `externalId` to receive the user's identifier. This enables multi-channel identification and proper user action traceability.
+```ts
+import { tools as generalTools } from "../tools/allGeneralTools";
+import { getStatusTool } from "./tools/getStatus";
+
+export const tools = {
+  ...generalTools,
+  get_status: getStatusTool,
+  // ...other client-specific tools
+};
+```
+
+- Client-specific tools can overwrite generic ones if they have the same name.
+- This way, each instance can have its own tools and the generic ones will always be available.
+
+> **Recommendation:** Every new tool should consider a parameter called `externalId` to receive the user's identifier. This allows for multi-channel identification and proper traceability of user actions.
 
 ## 📄 License
 
 MIT
 
-## 👥 Contributing
+## 👥 Contribution
 
 1. Fork the project
 2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request 
+5. Open a Pull Request
