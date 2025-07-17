@@ -201,6 +201,8 @@ Body=mensaje_del_usuario&From=numero_telefono
 3. Registra la tool en `tools/allTools.ts`
 4. La tool se integrará automáticamente en el prompt del asistente
 
+> **Recomendación:** Cada nueva tool debería considerar un parámetro llamado `externalId` para recibir el identificador del usuario. Esto permite la identificación multi-canal y la trazabilidad correcta de las acciones del usuario.
+
 ## 📄 Licencia
 
 MIT
@@ -415,6 +417,8 @@ Body=user_message&From=phone_number
 2. Define the tool following the existing format
 3. Register the tool in `tools/allTools.ts`
 4. The tool will be automatically integrated into the assistant's prompt
+
+> **Recommendation:** Each new tool should consider a parameter named `externalId` to receive the user's identifier. This enables multi-channel identification and proper user action traceability.
 
 ## 📄 License
 

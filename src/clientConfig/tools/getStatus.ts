@@ -6,12 +6,12 @@ import { db } from "../../database/db";
  * Arguments for the get_status tool
  */
 export interface GetStatusArgs {
-  number: string;
+  externalId: string;
 }
 
 /**
  * Get the status of a user's debt.
- * The phone number is automatically provided by the system through metadata.
+ * The phone number (externalId) is automatically provided by the system through metadata.
  */
 export const getStatusTool: ToolConfig<GetStatusArgs> = {
   definition: {
@@ -22,21 +22,21 @@ export const getStatusTool: ToolConfig<GetStatusArgs> = {
       parameters: {
         type: "object",
         properties: {
-          number: {
+          externalId: {
             type: "string",
             description: "El número de teléfono del usuario (se maneja automáticamente, no necesitas proporcionarlo)",
           },
         },
-        required: [],  // Hacemos que number no sea requerido ya que se maneja automáticamente
+        required: [],  // Hacemos que externalId no sea requerido ya que se maneja automáticamente
       },
     },
   },
-  handler: async ({ number }) => {
-    return await getStatus(number);
+  handler: async ({ externalId }) => {
+    return await getStatus(externalId);
   },
 };
 
-async function getStatus(number: string) {
+async function getStatus(externalId: string) {
   
   
   try {

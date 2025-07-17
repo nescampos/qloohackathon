@@ -69,8 +69,8 @@ export class AssistantController {
       const tool = tools[toolName];
       if (!tool) throw new Error(`Tool ${toolName} not found`);
       let params = parseParams(paramsRaw);
-      if (tool.definition.function.parameters.properties.number && !params.number) {
-        params.number = externalId;
+      if (tool.definition.function.parameters.properties.externalId && !params.externalId) {
+        params.externalId = externalId;
       }
       const required = tool.definition.function.parameters.required || [];
       for (const req of required) {
