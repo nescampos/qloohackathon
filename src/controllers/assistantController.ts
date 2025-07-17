@@ -6,19 +6,14 @@ import { tools } from '../clientConfig/allTools';
 import { assistantPrompt } from '../clientConfig/prompt';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { v4 as uuidv4 } from 'uuid';
+import { aiConfig } from '../config/ai';
 
-const openaiConfig: any = {
-    apiKey: process.env.OPENAI_API_KEY
-};
-if (process.env.OPENAI_BASE_URL) {
-    openaiConfig.baseURL = process.env.OPENAI_BASE_URL;
+function sendError(reply: FastifyReply, error: unknown) {
+  reply.status(500).send({ error: (error instanceof Error ? error.message : String(error)) });
 }
-const openai = new OpenAI(openaiConfig);
-const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
-const maxTokens = process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) : 512; // Valor por defecto
-const historySize = process.env.HISTORY_SIZE ? parseInt(process.env.HISTORY_SIZE, 10) : 6; // Por defecto 6
-const modelTemperature = process.env.MODEL_TEMPERATURE ? parseFloat(process.env.MODEL_TEMPERATURE) : 0.2;
+
+const openai = new OpenAI(aiConfig.openaiConfig);
+const { model, maxTokens, historySize, modelTemperature } = aiConfig;
 
 // Utilidad para parsear los parámetros del string tipo key="value", key2="value2"
 function parseParams(paramsRaw: string): Record<string, any> {
@@ -41,7 +36,7 @@ export class AssistantController {
         reply.send({ success: true });
       }
     } catch (error) {
-      reply.status(500).send({ error: (error as Error).message });
+      sendError(reply, error);
     }
   }
 

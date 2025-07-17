@@ -14,8 +14,13 @@ export function parseMessage(body: any) {
   throw new Error('Unknown channel');
 }
 
+const senders: Record<string, (to: string, text: string, reply?: any) => Promise<any>> = {
+  twilio: sendTwilioMessage,
+  waba: (to, text) => sendWabaMessage(to, text),
+};
+
 export async function sendMessage(provider: string, to: string, text: string, reply?: any) {
-  if (provider === 'twilio') return sendTwilioMessage(to, text, reply);
-  if (provider === 'waba') return sendWabaMessage(to, text);
-  throw new Error('Unknown provider');
+  const sender = senders[provider];
+  if (!sender) throw new Error('Unknown provider');
+  return sender(to, text, reply);
 } 

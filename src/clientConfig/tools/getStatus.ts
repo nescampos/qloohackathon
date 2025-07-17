@@ -59,6 +59,6 @@ async function getStatus(externalId: string) {
     //console.error('Error al consultar la deuda:', error);
     return "Lo siento, hubo un error al consultar tu deuda. Por favor, intenta más tarde.";
   } finally {
-    await db.close();
+    //await db.close();
   }
 }
