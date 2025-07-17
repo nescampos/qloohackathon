@@ -20,6 +20,17 @@ const maxTokens = process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) 
 const historySize = process.env.HISTORY_SIZE ? parseInt(process.env.HISTORY_SIZE, 10) : 6; // Por defecto 6
 const modelTemperature = process.env.MODEL_TEMPERATURE ? parseFloat(process.env.MODEL_TEMPERATURE) : 0.2;
 
+// Utilidad para parsear los parámetros del string tipo key="value", key2="value2"
+function parseParams(paramsRaw: string): Record<string, any> {
+  const regex = /(\w+)\s*=\s*"(.*?)"/g;
+  const params: Record<string, string> = {};
+  let match;
+  while ((match = regex.exec(paramsRaw)) !== null) {
+    params[match[1]] = match[2];
+  }
+  return params;
+}
+
 export class AssistantController {
   static async handleMessage(request: FastifyRequest, reply: FastifyReply) {
     try {
@@ -62,10 +73,24 @@ export class AssistantController {
       const [, toolName, paramsRaw] = toolCallMatch;
       const tool = tools[toolName];
       if (!tool) throw new Error(`Tool ${toolName} not found`);
-      const params = { number: from };
+      // 1. Parsear los parámetros del string
+      let params = parseParams(paramsRaw);
+      // 2. Si la tool requiere el número de usuario, añadirlo automáticamente
+      if (tool.definition.function.parameters.properties.number && !params.number) {
+        params.number = from;
+      }
+      // 3. Validar contra el schema de la tool
+      const required = tool.definition.function.parameters.required || [];
+      for (const req of required) {
+        if (!(req in params)) {
+          throw new Error(`Falta el parámetro requerido: ${req}`);
+        }
+      }
+      // 4. Ejecutar la tool con los parámetros normalizados
       const toolResult = await tool.handler(params);
       messages.push({ role: 'assistant', content });
       messages.push({ role: 'function', name: toolName, content: toolResult });
+
       response = await openai.chat.completions.create({
         model,
         messages,
