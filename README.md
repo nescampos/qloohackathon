@@ -81,7 +81,8 @@ WABA_ACCESS_TOKEN=...
 
 ## 🚀 Comandos Disponibles
 
-- `npm run setup-db`: Configura la base de datos
+- `npm run setup-db`: Configura la base de datos (tablas genéricas)
+- `npm run setup-client-db`: Configura la base de datos con tablas específicas del cliente (ejecutarlo después de setup-db)
 - `npm run start-api`: Inicia el servidor API (en modo developer)
 - `npm run compile`: Compila el código TypeScript
 - `npm start`: Inicia en modo producción (después de la compilación)
@@ -366,7 +367,8 @@ WABA_ACCESS_TOKEN=...
 
 ## 🚀 Available Commands
 
-- `npm run setup-db`: Setup the database
+- `npm run setup-db`: Setup the database (generic tables)
+- `npm run setup-client-db`: Setup the database with client tables (run after setup-db)
 - `npm run start-api`: Start the API server (development mode)
 - `npm run compile`: Compile TypeScript code
 - `npm start`: Start in a production mode (after compilation)
