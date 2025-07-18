@@ -92,6 +92,15 @@ WABA_ACCESS_TOKEN=...
 src/
 ├── channels/       # Parsers y envío para cada canal (twilio, waba, etc.)
 ├── clientConfig/   # Prompt, configuraciones y tools específicas, para el caso de uso
+│   ├── database/   # Lógica y modelos de base de datos específicos del cliente
+│   │   ├── IClientDb.ts
+│   │   ├── SQLiteClientDb.ts
+│   │   ├── SQLServerClientDb.ts
+│   │   ├── SupabaseClientDb.ts
+│   │   ├── clientDbFactory.ts
+│   │   ├── userDebt.ts      # Ejemplo: lógica de deudas específica del cliente
+│   └── tools/      # Tools específicas del cliente
+│   └── scripts/    # Scripts de inicialización de tablas del cliente
 ├── controllers/    # Controladores de la API (webhook principal)
 ├── database/       # Configuración y modelos de la base de datos
 ├── schemas/        # Esquemas de validación
@@ -158,6 +167,49 @@ CREATE INDEX idx_chat_history_timestamp ON chat_history(timestamp);
 Cambia de entorno usando la variable `NODE_ENV`:
 - `development`: Usa SQLite (por defecto)
 - `production`: Usa SQL Server o Supabase
+
+## 🏦 Base de datos específica del cliente
+
+Si tu proyecto requiere tablas o lógica de base de datos que **no son genéricas** (por ejemplo, deudas, membresías, etc.), puedes aislarlas en `src/clientConfig/database/`.
+
+- Cada motor soportado (SQLite, SQL Server, Supabase) tiene su propia implementación.
+- Usa solo las variables de entorno para la conexión, no depende del core.
+- Ejemplo de archivo: `userDebt.ts` (puedes crear más módulos según tus necesidades).
+
+### Estructura de ejemplo
+
+```
+src/clientConfig/database/
+  IClientDb.ts              # Interfaz común para métodos del cliente
+  SQLiteClientDb.ts         # Implementación para SQLite
+  SQLServerClientDb.ts      # Implementación para SQL Server
+  SupabaseClientDb.ts       # Implementación para Supabase
+  clientDbFactory.ts        # Selecciona el motor según la variable de entorno
+  userDebt.ts               # Ejemplo: lógica de deudas
+src/clientConfig/scripts/
+  setupClientDatabase.ts  # Script para crear las tablas del cliente
+```
+
+### Inicialización de tablas del cliente
+
+Para crear las tablas específicas del cliente (por ejemplo, `user_debts`), ejecuta:
+
+```bash
+npx ts-node src/clientConfig/scripts/setupClientDatabase.ts
+```
+
+### Ejemplo de uso en código
+
+```ts
+import { getUserDebt, setUserDebt } from './clientConfig/database/userDebt';
+
+const deuda = await getUserDebt('usuario123');
+await setUserDebt('usuario123', 100);
+```
+
+> Puedes crear más módulos en `clientConfig/database/` para otras tablas o lógica específica del cliente.
+
+---
 
 ## 📝 Uso de la API y Webhook
 
@@ -309,6 +361,7 @@ TWILIO_NUMBER=...
 # WhatsApp Business API (WABA)
 WABA_PHONE_NUMBER_ID=...
 WABA_ACCESS_TOKEN=...
+
 ```
 
 ## 🚀 Available Commands
@@ -324,6 +377,15 @@ WABA_ACCESS_TOKEN=...
 src/
 ├── channels/       # Parsers and senders for each channel (twilio, waba, etc.)
 ├── clientConfig/   # Prompt, configurations and specific tools for the use case
+│   ├── database/   # Client-specific database logic and models
+│   │   ├── IClientDb.ts
+│   │   ├── SQLiteClientDb.ts
+│   │   ├── SQLServerClientDb.ts
+│   │   ├── SupabaseClientDb.ts
+│   │   ├── clientDbFactory.ts
+│   │   ├── userDebt.ts      # Example: client-specific debt logic
+│   └── tools/      # Client-specific tools
+│   └── scripts/    # Client table initialization scripts
 ├── controllers/    # API controllers (main webhook)
 ├── database/       # Database config and models
 ├── schemas/        # Validation schemas
@@ -390,6 +452,48 @@ CREATE INDEX idx_chat_history_timestamp ON chat_history(timestamp);
 Switch environments using the `NODE_ENV` variable:
 - `development`: Uses SQLite (default)
 - `production`: Uses SQL Server or Supabase
+
+## 🏦 Client-Specific Database
+
+If your project requires database tables or logic that are **not generic** (e.g., debts, memberships, etc.), you can isolate them in `src/clientConfig/database/`.
+
+- Each supported engine (SQLite, SQL Server, Supabase) has its own implementation.
+- Uses only environment variables for connection, does not depend on the core.
+- Example file: `userDebt.ts` (you can create more modules as needed).
+
+### Example structure for a debt table
+
+```
+src/clientConfig/database/
+  IClientDb.ts              # Common interface for client methods
+  SQLiteClientDb.ts         # SQLite implementation
+  SQLServerClientDb.ts      # SQL Server implementation
+  SupabaseClientDb.ts       # Supabase implementation
+  clientDbFactory.ts        # Selects engine based on env variable
+  userDebt.ts               # Example: debt logic
+src/clientConfig/scripts/
+  setupClientDatabase.ts  # Script to create client tables
+```
+
+### Client table initialization
+
+To create client-specific tables (e.g., `user_debts`), run:
+
+```bash
+npx ts-node src/clientConfig/scripts/setupClientDatabase.ts
+```
+
+### Example usage in code
+
+```ts
+import { getUserDebt, setUserDebt } from './clientConfig/database/userDebt';
+
+const debt = await getUserDebt('user123');
+await setUserDebt('user123', 100);
+```
+
+> You can create more modules in `clientConfig/database/` for other client-specific tables or logic.
+
 
 ## 📝 API Usage & Webhook
 

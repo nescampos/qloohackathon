@@ -6,7 +6,8 @@
     "start": "node dist/index.js",
     "start-api": "ts-node src/index.ts",
     "compile": "tsc",
-    "setup-db": "ts-node src/scripts/setupDatabase.ts"
+    "setup-db": "ts-node src/scripts/setupDatabase.ts",
+    "setup-client-db": "ts-node src/clientConfig/scripts/setupClientDatabase.ts"
   },
   "author": "",
   "license": "MIT",

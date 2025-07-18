@@ -1,6 +1,5 @@
 import type { ToolConfig } from "../../utils/toolConfig";
-import { db } from "../../database/db";
-
+import { getUserDebt } from "../database/userDebt";
 
 /**
  * Arguments for the get_status tool
@@ -37,28 +36,13 @@ export const getStatusTool: ToolConfig<GetStatusArgs> = {
 };
 
 async function getStatus(externalId: string) {
-  
-  
   try {
-    const userDebt = false; //await db.getUserDebt(number);
-    
-    if (!userDebt) {
+    const amount = await getUserDebt(externalId);
+    if (!amount || amount === 0) {
       return "No tienes deuda pendiente.";
     }
-
-    /* const today = new Date();
-    const dueDate = new Date(userDebt.dueDate);
-    const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysOverdue > 0) {
-      return `Tienes una deuda de $${userDebt.debtAmount.toFixed(2)} que vence el ${dueDate.toLocaleDateString()} con ${daysOverdue} días de atraso.`;
-    } else {
-      return `Tienes una deuda de $${userDebt.debtAmount.toFixed(2)} que vence el ${dueDate.toLocaleDateString()}.`;
-    } */
+    return `Tienes una deuda de $${amount.toFixed(2)} pesos.`;
   } catch (error) {
-    //console.error('Error al consultar la deuda:', error);
     return "Lo siento, hubo un error al consultar tu deuda. Por favor, intenta más tarde.";
-  } finally {
-    //await db.close();
   }
 }
