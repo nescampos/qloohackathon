@@ -1,5 +1,11 @@
-import { parseTwilioMessage, sendTwilioMessage } from './twilio';
-import { parseWabaMessage, sendWabaMessage } from './waba';
+import * as twilio from './twilio';
+import * as waba from './waba';
+
+export const CHANNEL_META_MAP: Record<string, { CHANNEL_TYPE: string }> = {
+  twilio: { CHANNEL_TYPE: twilio.CHANNEL_TYPE },
+  waba: { CHANNEL_TYPE: waba.CHANNEL_TYPE },
+  // ...otros canales
+};
 
 export function detectChannel(body: any) {
   if (body.From && body.Body) return 'twilio';
@@ -9,14 +15,14 @@ export function detectChannel(body: any) {
 
 export function parseMessage(body: any) {
   const channel = detectChannel(body);
-  if (channel === 'twilio') return parseTwilioMessage(body);
-  if (channel === 'waba') return parseWabaMessage(body);
+  if (channel === 'twilio') return twilio.parseTwilioMessage(body);
+  if (channel === 'waba') return waba.parseWabaMessage(body);
   throw new Error('Unknown channel');
 }
 
 const senders: Record<string, (to: string, text: string, reply?: any) => Promise<any>> = {
-  twilio: sendTwilioMessage,
-  waba: (to, text) => sendWabaMessage(to, text),
+  twilio: twilio.sendTwilioMessage,
+  waba: (to, text) => waba.sendWabaMessage(to, text),
 };
 
 export async function sendMessage(provider: string, to: string, text: string, reply?: any) {

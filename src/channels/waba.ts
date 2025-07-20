@@ -1,3 +1,5 @@
+export const CHANNEL_TYPE = 'whatsapp';
+
 // Normaliza el número de WABA a formato internacional con +
 function normalizeWabaNumber(input: string): string {
   if (!input.startsWith('+')) input = '+' + input;

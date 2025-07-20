@@ -7,6 +7,7 @@ import { assistantPrompt } from '../clientConfig/prompt';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { aiConfig } from '../config/ai';
+import { CHANNEL_META_MAP } from "../channels";
 
 function sendError(reply: FastifyReply, error: unknown) {
   reply.status(500).send({ error: (error instanceof Error ? error.message : String(error)) });
@@ -42,7 +43,8 @@ export class AssistantController {
 
   static async processAIMessage(provider: string, externalId: string, text: string, name?: string): Promise<string> {
     // Recuperar historial reciente
-    const recentMessages = await db.getRecentMessagesByProvider(provider, externalId, historySize);
+    const channelType = CHANNEL_META_MAP[provider]?.CHANNEL_TYPE || provider;
+    const recentMessages = await db.getRecentMessagesByProvider(channelType, externalId, historySize);
     const history: ChatCompletionMessageParam[] = recentMessages
       .reverse()
       .map((msg) => ({ role: msg.role as 'user' | 'assistant', content: msg.message }));
@@ -85,8 +87,8 @@ export class AssistantController {
       content = response.choices[0].message?.content ?? '';
     }
     // Guardar mensajes en la base de datos
-    await db.saveMessageByProvider(provider, externalId, text, 'user', name);
-    await db.saveMessageByProvider(provider, externalId, content, 'assistant', name);
+    await db.saveMessageByProvider(channelType, externalId, text, 'user', name);
+    await db.saveMessageByProvider(channelType, externalId, content, 'assistant', name);
     return content;
   }
 } 

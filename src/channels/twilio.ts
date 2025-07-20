@@ -1,6 +1,8 @@
 import { FastifyReply } from 'fastify';
 const twilio = require('twilio');
 
+export const CHANNEL_TYPE = 'whatsapp';
+
 // Normaliza el número de Twilio a formato internacional con +
 function normalizeTwilioNumber(input: string): string {
   if (input.startsWith('whatsapp:')) input = input.replace('whatsapp:', '');

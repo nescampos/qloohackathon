@@ -246,7 +246,8 @@ Body=mensaje_del_usuario&From=numero_telefono
 ### Agregar Nuevos Canales
 1. Crea un nuevo archivo en la carpeta `channels/` (ej: `telegram.ts`)
 2. Implementa el parser y el sender para ese canal
-3. Regístralo en el dispatcher de canales
+3. Agrega la propiedad `CHANNEL_TYPE` para especificar el nombre del canal a registrar en la base de datos para las conversaciones (por ejemplo WABA y Twilio se registran como `whatsapp`)
+4. Regístralo en el dispatcher de canales
 
 ### Agregar Nuevas Tools
 1. Crea un nuevo archivo en la carpeta `tools/` (tools genéricas, disponibles para todas las instancias)
@@ -530,7 +531,8 @@ Body=user_message&From=phone_number
 ### Adding New Channels
 1. Create a new file in the `channels/` folder (e.g., `telegram.ts`)
 2. Implement the parser and sender for that channel
-3. Register it in the channel dispatcher
+3. Add the `CHANNEL_TYPE` property to specify the name of the channel to register in the database for conversations (for example WABA and Twilio are registered as `whatsapp`)
+4. Register it in the channel dispatcher
 
 ### Adding New Tools
 1. Create a new file in the `tools/` folder (generic tools, available for all instances)
