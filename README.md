@@ -270,47 +270,6 @@ Switch environments using the `NODE_ENV` variable:
 - `development`: Uses SQLite (default)
 - `production`: Uses SQL Server or Supabase
 
-## 🏦 Client-Specific Database
-
-If your project requires database tables or logic that are **not generic** (e.g., debts, memberships, etc.), you can isolate them in `src/clientConfig/database/`.
-
-- Each supported engine (SQLite, SQL Server, Supabase) has its own implementation.
-- Uses only environment variables for connection, does not depend on the core.
-- Example file: `userDebt.ts` (you can create more modules as needed).
-
-### Example structure for a debt table
-
-```
-src/clientConfig/database/
-  IClientDb.ts              # Common interface for client methods
-  SQLiteClientDb.ts         # SQLite implementation
-  SQLServerClientDb.ts      # SQL Server implementation
-  SupabaseClientDb.ts       # Supabase implementation
-  clientDbFactory.ts        # Selects engine based on env variable
-  userDebt.ts               # Example: debt logic
-src/clientConfig/scripts/
-  setupClientDatabase.ts  # Script to create client tables
-```
-
-### Client table initialization
-
-To create client-specific tables (e.g., `user_debts`), run:
-
-```bash
-npx ts-node src/clientConfig/scripts/setupClientDatabase.ts
-```
-
-### Example usage in code
-
-```ts
-import { getUserDebt, setUserDebt } from './clientConfig/database/userDebt';
-
-const debt = await getUserDebt('user123');
-await setUserDebt('user123', 100);
-```
-
-> You can create more modules in `clientConfig/database/` for other client-specific tables or logic.
-
 
 ## 📝 API Usage & Webhook
 
