@@ -12,6 +12,7 @@ function formatForTelegram(userId: string): string {
 }
 
 export function parseTelegramMessage(body: any) {
+
   const message = body.message || body.edited_message;
   if (!message) {
     throw new Error('Invalid Telegram message format');

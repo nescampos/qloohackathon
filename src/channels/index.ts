@@ -9,6 +9,7 @@ export const CHANNEL_META_MAP: Record<string, { CHANNEL_TYPE: string }> = {
 };
 
 export function detectChannel(body: any) {
+
   if (body.From && body.Body) return 'twilio';
   if (body.messages && body.messages[0]?.type === 'text') return 'waba';
   if (body.message || body.edited_message) return 'telegram';

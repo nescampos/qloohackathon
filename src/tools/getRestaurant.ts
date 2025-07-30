@@ -129,7 +129,6 @@ async function askQloo(city : string, cuisine?: string, dogs_allowed?: string, k
   let hasBrunch = brunch !== undefined && brunch.toLowerCase() == 'true' ? ",urn:tag:dining_options:place:brunch" : "";
 
   const targetPath = `${process.env.QLOO_ENDPOINT}/v2/insights/?filter.type=urn:entity:place&filter.location.query=${city}&filter.tags=urn:tag:genre:place:restaurant${restaurtantType}${dogsAllowed}${kidsMenuAvailable}${hasVegan}${hasDelivery}${hasVegetarian}${acceptCredit}${hasBar}${freeParking}${hasAlcohol}${hasCoffee}${hasDinner}${hasLunch}${hasBreakfast}${hasDessert}${hasBrunch}&take=5`;
-  console.log(targetPath);
   const targetPathConfig = {
         headers: {
             'X-Api-Key': process.env.QLOO_API_KEY,
@@ -143,7 +142,17 @@ async function askQloo(city : string, cuisine?: string, dogs_allowed?: string, k
         );
         // Return the tokens available for the account
         var results = data.results.entities;
-        return results.map((restaunt: any) =>`Name: ${restaunt.name}, Is Open: ${!restaunt.properties.is_closed}, Address: ${restaunt.properties.address}, Website: ${restaunt.properties.website}, Phone: ${restaunt.properties.phone}`).join("\n");
+        if (!results || results.length === 0) {
+            return "No se encontraron restaurantes con esos criterios.";
+        }
+        return results.map((restaunt: any, idx: number) => `
+${idx+1}. ${restaunt.name}
+   Estado: ${restaunt.properties.is_closed ? 'Cerrado' : 'Abierto'}
+   Dirección: ${restaunt.properties.address || 'No disponible'}
+   Teléfono: ${restaunt.properties.phone || 'No disponible'}
+   Web: ${restaunt.properties.website || 'No disponible'}
+   Tipo de cocina: ${(restaunt.properties.cuisine && restaunt.properties.cuisine.length > 0) ? restaunt.properties.cuisine.join(', ') : 'No especificado'}
+`).join("\n");
 
     } catch (error) {
         throw(error);

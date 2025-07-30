@@ -4,17 +4,55 @@ An intelligent conversational assistant that helps users discover restaurants ba
 
 ## 🍽️ What This Assistant Does
 
-This assistant specializes in restaurant discovery with advanced filtering capabilities. Users can ask questions like:
-- "What Italian restaurants are available in Las Condes?"
-- "Find vegan restaurants in Santiago that allow dogs"
-- "Show me restaurants with kids menu and free parking in La Florida"
-- Multi-channel integration: Twilio (WhatsApp/SMS) and native WhatsApp Business API (WABA)
-- Single, extensible webhook for all channels
+This assistant specializes in restaurant discovery with advanced filtering capabilities. It understands natural language queries and can filter restaurants by:
+
+### 🗺️ Location-Based Queries
+- "Restaurants in Providencia"
+- "What restaurants are there in Las Condes?"
+- "Places to eat in downtown Santiago"
+
+### 🍕 Cuisine Types
+- "Italian restaurants in Vitacura"
+- "Mexican food in Ñuñoa"
+- "Where is Chinese food in Santiago"
+
+### 🐾 Pet-Friendly Options
+- "Pet-friendly places in Providencia"
+- "Restaurants that accept dogs in Las Condes"
+- "Places to go with pets in Vitacura"
+
+### 👨‍👩‍👧‍👦 Family-Friendly Features
+- "Restaurants with children's menu in La Reina"
+- "Places with games for children in Lo Barnechea"
+- "Family-friendly places in Providencia"
+
+### 🌱 Dietary Preferences
+- "Vegan restaurants in Santiago"
+- "Vegetarian options in Las Condes"
+- "Gluten-free food in Providencia"
+
+### 🚗 Services & Amenities
+- "Free parking restaurants in Vitacura"
+- "Delivery places in Ñuñoa"
+- "Restaurants with bar in Providencia"
+- "Places that accept cards in Santiago"
+
+### ☕ Meal Types
+- "Where to have breakfast in Las Condes"
+- "Places to have lunch in Providencia"
+- "Restaurants for dinner in Vitacura"
+- "Where to have brunch on Sunday in Santiago"
+- "Places to have once in Ñuñoa"
+
+
+## Configuration and channels
+
+- Multi-channel integration: Twilio (WhatsApp/SMS), WhatsApp Business API (WABA), and Telegram
+- Dedicated webhook for Telegram (`/webhook/telegram`) and a single extensible webhook for other channels
 - SQLite database for local development
 - SQL Server or Supabase database for production
 - Dynamic and extensible tools system (executed in backend)
 - Flexible model and endpoint (baseURL) configuration
-
 ## 📋 Prerequisites
 
 - Node.js (v14 or higher)
@@ -22,6 +60,7 @@ This assistant specializes in restaurant discovery with advanced filtering capab
 - An OpenAI account or compatible API service
 - A Twilio account (for messaging integration)
 - A WhatsApp Business API (Meta) account (optional)
+- A Telegram account and a bot created with @BotFather (optional)
 - SQL Server or Supabase (production only)
 
 ## 🛠️ Installation
@@ -39,6 +78,10 @@ npm install
 
 3. Create a `.env` file in the project root:
 ```env
+# Qloo Configuration
+QLOO_ENDPOINT=
+QLOO_API_KEY=
+
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-3.5-turbo
@@ -79,7 +122,63 @@ TWILIO_NUMBER=...
 WABA_PHONE_NUMBER_ID=...
 WABA_ACCESS_TOKEN=...
 
+# Telegram (optional)
+TELEGRAM_BOT_TOKEN=...
 ```
+
+## 📱 Supported Messaging Channels
+
+### Telegram
+- Create a bot with [@BotFather](https://t.me/BotFather) and obtain the token.
+- Add the token as `TELEGRAM_BOT_TOKEN` in your `.env`.
+- Expose your server to the internet (e.g., using [ngrok](https://ngrok.com/)) and configure the Telegram webhook pointing to:
+  
+  `https://<your-domain>/webhook/telegram`
+
+- The Telegram channel supports text messages and displays detailed restaurant responses, just like WhatsApp and Twilio.
+
+### Twilio (WhatsApp/SMS)
+- Configure your Twilio credentials and number in the `.env`.
+- Point the Twilio webhook to `/assistant`.
+
+### WhatsApp Business API (WABA)
+- Configure your WABA credentials and number in the `.env`.
+- Point the WABA webhook to `/assistant`.
+
+## 🧠 Assistant Behavior
+
+- The assistant analyzes each message and, if applicable, executes the `get_restaurant` tool using structured tool-calling.
+- Tool responses now display **all details of each restaurant**: name, status (open/closed), address, phone, web, and cuisine type.
+- If no restaurants are found, the assistant explicitly indicates this.
+- The prompt forces displaying the information as returned by the tool, without summarizing or paraphrasing.
+- Supports natural language queries about city, food type, filters (vegan, children's menu, pets, etc.), services (delivery, bar, parking, etc.), and meal types (breakfast, brunch, etc.).
+
+## 📝 Example Detailed Response
+
+```
+1. Boragó
+   Estado: Abierto
+   Dirección: Av. Nueva Costanera 3467, Vitacura
+   Teléfono: +56 2 2953 8893
+   Web: https://www.borago.cl
+   Tipo de cocina: Contemporánea, Chilena
+
+2. La Mar
+   Estado: Abierto
+   Dirección: Av. Nueva Costanera 4076, Vitacura
+   Teléfono: +56 2 2218 0100
+   Web: https://www.lamarcebicheria.cl
+   Tipo de cocina: Peruana, Mariscos
+```
+
+## ⚙️ Environment Variables (.env)
+
+Make sure to define in your `.env`:
+- QLOO_ENDPOINT, QLOO_API_KEY
+- OPENAI_API_KEY, OPENAI_MODEL
+- TELEGRAM_BOT_TOKEN
+- (Optional) Twilio and WABA credentials
+- DB_TYPE, SUPABASE_URL, SUPABASE_KEY or SQL Server
 
 ## 🚀 Available Commands
 

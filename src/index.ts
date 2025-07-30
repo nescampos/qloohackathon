@@ -18,6 +18,17 @@ async function startServer() {
     // Register routes
     fastify.post('/assistant', { schema: assistantRequestSchema }, AssistantController.handleMessage);
 
+    // Dedicated Telegram webhook (no schema, always 200 OK)
+    fastify.post('/webhook/telegram', async (request, reply) => {
+        try {
+            await AssistantController.handleMessage(request, reply);
+        } catch (err) {
+            console.error('Error in Telegram webhook:', err);
+            // Always respond 200 OK to Telegram
+        }
+        reply.send({ success: true });
+    });
+
     // Register shutdown handlers
     ServerLifecycle.registerShutdownHandlers(fastify);
 
