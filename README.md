@@ -1,12 +1,19 @@
-# Restaurant Assistant
+# Traveler Assistant
 
-An intelligent conversational assistant that helps users discover restaurants based on specific criteria like location, cuisine type, dietary preferences, and amenities. The assistant uses the [Qloo API](https://www.qloo.com/) to provide accurate, real-time restaurant information across multiple communication channels.
+An intelligent conversational assistant that helps users discover both restaurants and a wide variety of other places (such as parks, hotels, shopping malls, markets, cultural centers, etc.) based on specific criteria like location, type, amenities, and preferences. The assistant uses the [Qloo API](https://www.qloo.com/) to provide accurate, real-time information across multiple communication channels.
 
-## 🍽️ What This Assistant Does
+## 🍽️🗺️ What This Assistant Does
 
-This assistant specializes in restaurant discovery with advanced filtering capabilities. It understands natural language queries and can filter restaurants by:
+This assistant specializes in:
+- Restaurant discovery with advanced filtering capabilities.
+- Discovery of other places of interest (parks, hotels, shopping malls, markets, cultural centers, etc.) with flexible filters.
+- Remembering your preferences and previous queries thanks to its conversation memory, so you don't have to repeat information in long or multi-turn conversations.
 
-### 🗺️ Location-Based Queries
+It understands natural language queries and can filter results by a wide range of criteria.
+
+### 🏙️ Examples of Searches
+
+#### Restaurant Searches
 - "Restaurants in Providencia"
 - "What restaurants are there in Las Condes?"
 - "Places to eat in downtown Santiago"
@@ -44,6 +51,66 @@ This assistant specializes in restaurant discovery with advanced filtering capab
 - "Where to have brunch on Sunday in Santiago"
 - "Places to have once in Ñuñoa"
 
+---
+
+### 🏢 Other Places (get_places)
+
+#### 🛍️ Shopping & Markets
+- "Shopping malls with free parking in Las Condes"
+- "Markets with restrooms in Vitacura"
+- "Shops with wifi in Santiago"
+- "Tourist shopping centers in Providencia"
+
+#### 🌳 Parks & Outdoor
+- "Parks with playgrounds for kids in Ñuñoa"
+- "Dog parks in Lo Barnechea"
+- "Smoke-free parks with free admission in Las Condes"
+- "Parks with restrooms and coffee in Providencia"
+
+#### 🏨 Hotels
+- "Hotels that are smoke-free in Providencia"
+- "Hotels with wifi and free parking in Santiago"
+- "Hotels that accept credit card in Ñuñoa"
+
+#### 🏛️ Cultural & Tourist
+- "Cultural centers with free admission in Santiago"
+- "Tourist attractions with restrooms in Vitacura"
+- "Cultural centers with coffee and wifi in Las Condes"
+
+#### 🚻 Amenities & Filters
+- "Places with restrooms and free admission in Providencia"
+- "Dog parks with playgrounds for kids in Ñuñoa"
+- "Markets with coffee and free parking in Vitacura"
+- "Shopping malls that accept credit card and have wifi in Santiago"
+- "Tourist places with alcohol in Las Condes"
+- "Hotels with playgrounds for kids and smoke-free in Lo Barnechea"
+- "Cultural centers with parking, coffee, and restrooms in Santiago"
+- "Restaurants that accept dogs in Las Condes"
+- "Places to go with pets in Vitacura"
+
+### 👨‍👩‍👧‍👦 Family-Friendly Features
+- "Restaurants with children's menu in La Reina"
+- "Places with games for children in Lo Barnechea"
+- "Family-friendly places in Providencia"
+
+### 🌱 Dietary Preferences
+- "Vegan restaurants in Santiago"
+- "Vegetarian options in Las Condes"
+- "Gluten-free food in Providencia"
+
+### 🚗 Services & Amenities
+- "Free parking restaurants in Vitacura"
+- "Delivery places in Ñuñoa"
+- "Restaurants with bar in Providencia"
+- "Places that accept cards in Santiago"
+
+### ☕ Meal Types
+- "Where to have breakfast in Las Condes"
+- "Places to have lunch in Providencia"
+- "Restaurants for dinner in Vitacura"
+- "Where to have brunch on Sunday in Santiago"
+- "Places to have once in Ñuñoa"
+
 
 ## Configuration and channels
 
@@ -53,6 +120,7 @@ This assistant specializes in restaurant discovery with advanced filtering capab
 - SQL Server or Supabase database for production
 - Dynamic and extensible tools system (executed in backend)
 - Flexible model and endpoint (baseURL) configuration
+
 ## 📋 Prerequisites
 
 - Node.js (v14 or higher)
