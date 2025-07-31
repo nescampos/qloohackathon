@@ -33,7 +33,7 @@ export class AssistantController {
       const { from, text, provider } = parseMessage(request.body);
       const responseText = await messageService.processUserMessage(provider, from, text);
       await sendMessage(provider, from, responseText, reply);
-      if (provider !== 'twilio') {
+      if (provider !== 'twilio' && provider !== 'telegram') {
         reply.send({ success: true });
       }
     } catch (error) {
